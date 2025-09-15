@@ -1,0 +1,6 @@
+# Minimal static config; we use Docker provider via CLI args in compose
+api:
+  insecure: false
+log:
+  level: INFO
+accessLog: {}

@@ -1,0 +1,126 @@
+version: "3.8"
+
+networks:
+  web:
+    external: false
+  internal:
+    external: false
+
+volumes:
+  pgdata:
+  traefik_letsencrypt:
+  media:
+  backups:
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:${TRAEFIK_HTTP_PORT}
+      - --entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT}
+      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      # Redirect HTTP -> HTTPS
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+    ports:
+      - "${TRAEFIK_HTTP_PORT}:80"
+      - "${TRAEFIK_HTTPS_PORT}:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+      - ./traefik/traefik.yml:/traefik.yml:ro
+    networks:
+      - web
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # (Optional) protect the dashboard by host rule or remove in production
+      # Access: https://kitsu.example.com:443/ (only if you add a router for it)
+      # Better approach: don't expose dashboard publicly.
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---- ZOU (backend API) ----
+  zou-api:
+    build:
+      context: ./zou
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${ZOU_SECRET_KEY}
+      LOG_LEVEL: ${ZOU_LOG_LEVEL}
+      # If CORS or ALLOWED_HOSTS are needed by your fork, pass them here
+      # ALLOWED_HOSTS: ${ZOU_ALLOWED_HOSTS}
+    depends_on:
+      - db
+    networks:
+      - internal
+      - web
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zou-api.rule=Host(`${KITSU_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.zou-api.entrypoints=websecure"
+      - "traefik.http.routers.zou-api.tls.certresolver=le"
+      - "traefik.http.services.zou-api.loadbalancer.server.port=8000"
+
+  # ---- KITSU (frontend) ----
+  kitsu-web:
+    build:
+      context: ./kitsu
+    environment:
+      # The frontend needs to know the public API URL
+      PUBLIC_API_URL: ${KITSU_API_URL}
+    depends_on:
+      - zou-api
+    networks:
+      - internal
+      - web
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kitsu-web.rule=Host(`${KITSU_DOMAIN}`)"
+      - "traefik.http.routers.kitsu-web.entrypoints=websecure"
+      - "traefik.http.routers.kitsu-web.tls.certresolver=le"
+      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.services.kitsu-web.loadbalancer.server.port=80"
+
+  # ---- Daily DB backups ----
+  db-backup:
+    image: postgres:15
+    depends_on:
+      - db
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
+      PGDATABASE: ${POSTGRES_DB}
+      PGHOST: db
+      BACKUP_CRON: ${BACKUP_CRON}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
+    volumes:
+      - backups:/backups
+      - ./backups/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/bash", "-c", "chmod +x /backup.sh && /backup.sh"]
+    networks:
+      - internal
+    restart: unless-stopped

@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: kitsu
+      POSTGRES_USER: kitsu
+      POSTGRES_PASSWORD: kitsu_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kitsu -d kitsu"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: masterkey
+    volumes:
+      - meili:/meili_data
+
+  zou-api:
+    build:
+      context: ./zou
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+    environment:
+      # --- Database
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: kitsu
+      DB_USERNAME: kitsu
+      DB_PASSWORD: kitsu_pass
+      # --- Redis (key-value store)
+      KV_HOST: redis
+      KV_PORT: "6379"
+      # --- Indexer (Meilisearch)
+      INDEXER_HOST: meilisearch
+      INDEXER_PORT: "7700"
+      INDEXER_KEY: masterkey
+      # --- Auth / misc
+      SECRET_KEY: "change-me-please"
+      DEBUG: "False"
+      # --- Where to store previews on disk
+      PREVIEW_FOLDER: /opt/zou/previews
+      TMP_DIR: /tmp
+    volumes:
+      - previews:/opt/zou/previews
+    ports:
+      - "5001:8000"  # optional direct access to API
+
+  kitsu-web:
+    build:
+      context: ./kitsu
+      dockerfile: Dockerfile
+      args:
+        # Make the frontend call the backend via our nginx proxy path
+        VITE_API_URL: /api
+    depends_on:
+      - zou-api
+    ports:
+      - "8080:80"   # open http://localhost:8080
+    volumes:
+      - ./kitsu/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+
+volumes:
+  pgdata:
+  previews:
+  meili:
