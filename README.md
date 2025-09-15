@@ -55,6 +55,3 @@ Files to review for specific behavior
 - [zou/Dockerfile](zou/Dockerfile) — system dependencies for media processing and build steps.
 - [backups/backup.sh](backups/backup.sh) — backup schedule, dump path and retention.
 
-If you want, I can:
-- Add an example systemd / docker-run deployment snippet.
-- Convert `gunicorn.conf.py` to read `ZOU_WORKERS` / `ZOU_THREADS` from environment and update the Dockerfile.
