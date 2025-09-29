@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: kitsu
       POSTGRES_USER: kitsu
@@ -15,9 +16,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
 
   meilisearch:
     image: getmeili/meilisearch:v1.7
+    restart: unless-stopped
     environment:
       MEILI_ENV: production
       MEILI_MASTER_KEY: masterkey
@@ -28,6 +31,7 @@ services:
     build:
       context: ./zou
       dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -67,6 +71,7 @@ services:
       args:
         # Make the frontend call the backend via our nginx proxy path
         VITE_API_URL: /api
+    restart: unless-stopped
     depends_on:
       - zou-api
     ports:
