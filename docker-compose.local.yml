@@ -40,6 +40,20 @@ services:
       meilisearch:
         condition: service_started
     environment:
+      # Redis for JWT blacklist / background tasks
+      REDIS_URL: redis://redis:6379/0
+      ZOU_REDIS_URL: redis://redis:6379/0
+      ZOU_REDIS_HOST: redis
+      ZOU_REDIS_PORT: "6379"
+
+      # (optional but typical for Celery in Kitsu stacks)
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+      # Ensure a consistent secret for signing JWTs
+      JWT_SECRET_KEY: your-long-random-secret
+      ZOU_SECRET_KEY: your-long-random-secret
+
       # --- Database
       DB_HOST: db
       DB_PORT: "5432"
@@ -62,7 +76,7 @@ services:
     volumes:
       - previews:/opt/zou/previews
     ports:
-      - "5001:8000"  # optional direct access to API
+      - "5001:8000"
 
   kitsu-web:
     build:
@@ -77,7 +91,7 @@ services:
     ports:
       - "8080:80"   # open http://localhost:8080
     volumes:
-      - ./kitsu/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx-kitsu.conf:/etc/nginx/conf.d/default.conf:ro
 
 
 volumes:
