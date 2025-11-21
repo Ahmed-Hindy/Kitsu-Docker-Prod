@@ -3,13 +3,13 @@ services:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_DB: kitsu
-      POSTGRES_USER: kitsu
-      POSTGRES_PASSWORD: kitsu_pass
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - kitsu_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kitsu -d kitsu"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -17,6 +17,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+      - internal
 
   meilisearch:
     image: getmeili/meilisearch:v1.7
@@ -43,16 +45,16 @@ services:
       # --- Database
       DB_HOST: db
       DB_PORT: "5432"
-      DB_DATABASE: kitsu
-      DB_USERNAME: kitsu
-      DB_PASSWORD: kitsu_pass
-      # --- Redis (key-value store)
-      KV_HOST: redis
-      KV_PORT: "6379"
-      # --- Indexer (Meilisearch)
-      INDEXER_HOST: meilisearch
-      INDEXER_PORT: "7700"
-      INDEXER_KEY: masterkey
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # # --- Redis (key-value store)
+      # KV_HOST: redis
+      # KV_PORT: "6379"
+      # # --- Indexer (Meilisearch)
+      # INDEXER_HOST: meilisearch
+      # INDEXER_PORT: "7700"
+      # INDEXER_KEY: masterkey
       # --- Auth / misc
       SECRET_KEY: "change-me-please"
       DEBUG: "False"
@@ -81,6 +83,6 @@ services:
 
 
 volumes:
-  pgdata:
+  kitsu_pgdata:
   previews:
   meili:

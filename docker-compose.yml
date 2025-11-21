@@ -1,4 +1,4 @@
-version: "3.8"
+name: docker-kitsu
 
 networks:
   web:
@@ -7,10 +7,10 @@ networks:
     external: false
 
 volumes:
-  pgdata:
-  traefik_letsencrypt:
-  media:
-  backups:
+  kitsu_pgdata:
+  kitsu_traefik_letsencrypt:
+  kitsu_media:
+  kitsu_backups:
 
 services:
   traefik:
@@ -33,7 +33,7 @@ services:
       - "${TRAEFIK_HTTPS_PORT}:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_letsencrypt:/letsencrypt
+      - kitsu_traefik_letsencrypt:/letsencrypt
       - ./traefik/traefik.yml:/traefik.yml:ro
     networks:
       - web
@@ -51,7 +51,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - kitsu_pgdata:/var/lib/postgresql/data
     networks:
       - internal
     restart: unless-stopped
@@ -66,11 +66,26 @@ services:
     build:
       context: ./zou
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      SECRET_KEY: ${ZOU_SECRET_KEY}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: ${REDIS_URL}
+      ZOU_SECRET_KEY: ${ZOU_SECRET_KEY}
+      ZOU_ALLOWED_HOSTS: ${ZOU_ALLOWED_HOSTS}
+      ZOU_LOG_LEVEL: ${ZOU_LOG_LEVEL}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
-      # If CORS or ALLOWED_HOSTS are needed by your fork, pass them here
-      # ALLOWED_HOSTS: ${ZOU_ALLOWED_HOSTS}
+      ZOU_WORKERS: ${ZOU_WORKERS}
+      ZOU_THREADS: ${ZOU_THREADS}
+      SECRET_KEY: ${ZOU_SECRET_KEY}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: kitsu
+      DB_PASSWORD: change_me_strong
+      DB_DATABASE: kitsu
+
+      KV_HOST: redis
+      KV_PORT: 6379
     depends_on:
       - db
     networks:
@@ -118,7 +133,7 @@ services:
       BACKUP_CRON: ${BACKUP_CRON}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
     volumes:
-      - backups:/backups
+      - kitsu_backups:/backups
       - ./backups/backup.sh:/backup.sh:ro
     entrypoint: ["/bin/bash", "-c", "chmod +x /backup.sh && /backup.sh"]
     networks:
