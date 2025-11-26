@@ -25,12 +25,8 @@ RUN pip install --upgrade pip \
 
 COPY ../gunicorn.conf.py /app/gunicorn.conf.py
 
-# copy entrypoint script
-COPY ../entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
 ENV FLASK_APP=zou.app
 
-# entrypoint script:
-ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "zou.app:app"]
 
