@@ -104,6 +104,57 @@ services:
       - internal
     restart: unless-stopped
 
+  zou-init-db:
+    build:
+      context: ./zou
+      dockerfile: Dockerfile
+      args:
+        ZOU_VERSION: v1.0.1
+    env_file:
+      - .env
+    environment:
+      # ---- DB config (for Zou) ----
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE: ${POSTGRES_DB}
+
+      # ---- Redis / KV store ----
+      KV_TYPE: redis
+      KV_HOST: redis
+      KV_PORT: 6379
+
+      # ---- Meilisearch indexer ----
+      INDEXER_TYPE: meilisearch
+      INDEXER_HOST: meilisearch
+      INDEXER_PORT: 7700
+
+      # ---- Security / app settings ----
+      SECRET_KEY: ${ZOU_SECRET_KEY}
+      LOG_LEVEL: ${ZOU_LOG_LEVEL}
+    depends_on:
+      - db
+      - redis
+      - meilisearch
+      - zou-api
+    networks:
+      - internal
+    entrypoint: ["sh", "-c"]
+    command: >
+      "
+      echo '[zou-init-db] Running init-db (safe if already initialized)...';
+      zou init-db || echo '[zou-init-db] DB already initialized or init-db failed non-critically.';
+      echo '[zou-init-db] Creating admin (or skipping if it already exists)...';
+      zou create-admin ${ZOU_ADMIN_EMAIL} --password ${ZOU_ADMIN_PASSWORD} \
+        || echo '[zou-init-db] create-admin failed, possibly because the user already exists. Ignoring.';
+      echo '[zou-init-db] Done.';
+      "
+    restart: "no"
+
+  
+  
   kitsu-web:
     build:
       context: .
