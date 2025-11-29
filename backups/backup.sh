@@ -8,7 +8,7 @@ set -euo pipefail
 apt-get update >/dev/null 2>&1 || true
 apt-get install -y --no-install-recommends cron >/dev/null 2>&1 || true
 
-CRON_LINE="${BACKUP_CRON} /bin/bash -lc '/backup_once.sh'"
+CRON_LINE="${BACKUP_CRON} /bin/bash -lc '/backup_once.sh >> /proc/1/fd/1 2>&1'"
 
 cat >/backup_once.sh <<'EOS'
 #!/usr/bin/env bash

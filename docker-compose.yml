@@ -182,7 +182,7 @@ services:
     volumes:
       - backups:/backups
       - ./backups/backup.sh:/backup.sh:ro
-    entrypoint: ["/bin/bash", "-c", "chmod +x /backup.sh && /backup.sh"]
+    entrypoint: ["/bin/bash", "/backup.sh"]
     networks:
       - internal
     restart: unless-stopped
