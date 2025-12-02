@@ -147,13 +147,7 @@ services:
   
   
   kitsu-web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: kitsu-web
-      args:
-        KITSU_VERSION: v1.0.0
-        VITE_API_URL: /api
+    image: ghcr.io/ahmed-hindy/kitsu-web:latest
     environment:
       VITE_API_URL: /api
     depends_on:
