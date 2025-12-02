@@ -101,7 +101,7 @@ services:
     restart: unless-stopped
 
   zou-init-db:
-    image: my-zou:1.0.1
+    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
     env_file:
       - .env
     environment:
