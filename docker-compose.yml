@@ -66,12 +66,7 @@ services:
       - internal
 
   zou-api:
-    image: my-zou:1.0.1
-    build:
-      context: ./zou
-      dockerfile: Dockerfile
-      args:
-        ZOU_VERSION: v1.0.1
+    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
     env_file:
       - .env
     environment:
@@ -106,7 +101,7 @@ services:
     restart: unless-stopped
 
   zou-init-db:
-    image: my-zou:1.0.1
+    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
     env_file:
       - .env
     environment:
