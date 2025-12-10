@@ -102,6 +102,48 @@ services:
       - internal
     restart: unless-stopped
 
+  zou-events:
+    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    env_file:
+      - .env
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE: ${POSTGRES_DB}
+
+      KV_TYPE: redis
+      KV_HOST: redis
+      KV_PORT: 6379
+
+      INDEXER_TYPE: meilisearch
+      INDEXER_HOST: meilisearch
+      INDEXER_PORT: 7700
+
+      SECRET_KEY: ${ZOU_SECRET_KEY}
+      LOG_LEVEL: ${ZOU_LOG_LEVEL}
+
+    # run ONLY the events server here
+    command: >
+      gunicorn
+      --workers=1
+      --worker-class=geventwebsocket.gunicorn.workers.GeventWebSocketWorker
+      -b 0.0.0.0:5001
+      zou.event_stream:app
+
+    # optional, for debugging from host:
+    # ports:
+    #   - "5002:5001"
+
+    depends_on:
+      - db
+      - redis
+    networks:
+      - internal
+    restart: unless-stopped
+  
   zou-init-db:
     image: ghcr.io/ahmed-hindy/kitsu-zou:latest
     env_file:
