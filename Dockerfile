@@ -6,8 +6,9 @@ WORKDIR /app
 # git is needed only to clone the repo
 RUN apk add --no-cache git
 
-# KITSU_VERSION comes from build args (docker-compose)
+# KITSU_VERSION comes from build args
 ARG KITSU_VERSION=v1.0.0
+ENV KITSU_VERSION=${KITSU_VERSION}
 RUN git clone --depth=1 --branch "${KITSU_VERSION}" https://github.com/cgwire/kitsu.git .
 
 # Vite reads VITE_* variables at build time

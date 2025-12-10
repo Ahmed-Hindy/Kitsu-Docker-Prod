@@ -70,7 +70,7 @@ services:
     env_file:
       - .env
     ports:
-      - "5001:8000"   # host:container
+      - "${ZOU_API_PORT}:8000"
     environment:
       # ---- DB config (for Zou) ----
       DB_TYPE: postgres
@@ -82,24 +82,24 @@ services:
       # ---- Redis / KV store ----
       KV_TYPE: redis
       KV_HOST: redis
-      KV_PORT: 6379
+      KV_PORT: ${REDIS_PORT}
       # ---- Meilisearch indexer ----
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
-      INDEXER_PORT: 7700
+      INDEXER_PORT: ${MEILI_PORT}
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
       # optionally:
-      # CORS_ALLOWED_ORIGINS: http://localhost:8080
-      # ALLOWED_HOSTS: ${KITSU_DOMAIN}
+      # CORS_ALLOWED_ORIGINS: http://localhost:${KITSU_WEB_PORT}
+      # ALLOWED_HOSTS: ${KITSU_WEB_HOST}
 
       MAIL_SERVER: mailcatcher
-      MAIL_PORT: 1025
+      MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
       MAIL_DEFAULT_SENDER: "kitsu@example.com"
       MAIL_USE_TLS: false
       MAIL_USE_SSL: false
-      DOMAIN_NAME: "localhost:8080"
+      DOMAIN_NAME: "localhost:${KITSU_WEB_PORT}"
       DOMAIN_PROTOCOL: "http"
 
 
@@ -125,17 +125,17 @@ services:
 
       KV_TYPE: redis
       KV_HOST: redis
-      KV_PORT: 6379
+      KV_PORT: ${REDIS_PORT}
 
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
-      INDEXER_PORT: 7700
+      INDEXER_PORT: ${MEILI_PORT}
 
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
 
       MAIL_SERVER: mailcatcher
-      MAIL_PORT: 1025
+      MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
       MAIL_DEFAULT_SENDER: "kitsu@example.com"
       MAIL_USE_TLS: false
       MAIL_USE_SSL: false
@@ -148,12 +148,12 @@ services:
       gunicorn
       --workers=1
       --worker-class=geventwebsocket.gunicorn.workers.GeventWebSocketWorker
-      -b 0.0.0.0:5001
+      -b 0.0.0.0:${ZOU_API_PORT}
       zou.event_stream:app
 
     # optional, for debugging from host:
     # ports:
-    #   - "5002:5001"
+    #   - "5002:${ZOU_API_PORT}"
 
     depends_on:
       - db
@@ -178,12 +178,12 @@ services:
       # ---- Redis / KV store ----
       KV_TYPE: redis
       KV_HOST: redis
-      KV_PORT: 6379
+      KV_PORT: ${REDIS_PORT}
 
       # ---- Meilisearch indexer ----
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
-      INDEXER_PORT: 7700
+      INDEXER_PORT: ${MEILI_PORT}
 
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
@@ -241,7 +241,7 @@ services:
   mailcatcher:
     image: schickling/mailcatcher
     ports:
-      - "1080:1080"   # Web UI inbox
-      - "1025:1025"   # SMTP server
+      - "${MAILCATCHER_HTTP_PORT}:${MAILCATCHER_HTTP_PORT}"   # Web UI inbox
+      - "${MAILCATCHER_SMTP_PORT}:${MAILCATCHER_SMTP_PORT}"   # SMTP server
     networks:
       - internal

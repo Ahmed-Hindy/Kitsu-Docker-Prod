@@ -152,6 +152,7 @@ There is an official “all-in-one” Kitsu Docker image (`cgwire/cgwire`) that 
   * `db` (Postgres)
   * `traefik` (reverse proxy + HTTPS)
   * `db-backup` (automated backups)
+  * `Mailcatcher` (local mail for creating new Kitsu users)
   * extras (Redis, Meilisearch for local/dev)
 
 
