@@ -3,10 +3,15 @@ name: Build & publish Kitsu images
 on:
   push:
     branches: [ main ]
+    tags:
+      - "v*"
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
+  ZOU_VERSION: v1.0.1
+  KITSU_WEB_VERSION: v1.0.0
+  IMAGE_TAG: ${{ github.ref_name }}
 
 jobs:
   build-and-push-zou:
@@ -41,9 +46,9 @@ jobs:
           file: ./zou/Dockerfile
           push: true
           build-args: |
-            ZOU_VERSION=v1.0.1
+            ZOU_VERSION=${{ env.IMAGE_TAG }}
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:v1.0.1
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:latest
 
   build-and-push-kitsu-web:
@@ -79,8 +84,8 @@ jobs:
           target: kitsu-web
           push: true
           build-args: |
-            KITSU_VERSION=v1.0.0
+            KITSU_VERSION=${{ env.IMAGE_TAG }}
             VITE_API_URL=/api
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:v1.0.0
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:latest
