@@ -94,6 +94,15 @@ services:
       # CORS_ALLOWED_ORIGINS: http://localhost:8080
       # ALLOWED_HOSTS: ${KITSU_DOMAIN}
 
+      MAIL_SERVER: mailcatcher
+      MAIL_PORT: 1025
+      MAIL_DEFAULT_SENDER: "kitsu@example.com"
+      MAIL_USE_TLS: false
+      MAIL_USE_SSL: false
+      DOMAIN_NAME: "localhost:8080"
+      DOMAIN_PROTOCOL: "http"
+
+
     depends_on:
       - db
       - redis
@@ -124,6 +133,15 @@ services:
 
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
+
+      MAIL_SERVER: mailcatcher
+      MAIL_PORT: 1025
+      MAIL_DEFAULT_SENDER: "kitsu@example.com"
+      MAIL_USE_TLS: false
+      MAIL_USE_SSL: false
+      DOMAIN_NAME: "localhost:8080"
+      DOMAIN_PROTOCOL: "http"
+
 
     # run ONLY the events server here
     command: >
@@ -219,3 +237,11 @@ services:
     networks:
       - internal
     restart: unless-stopped
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1080:1080"   # Web UI inbox
+      - "1025:1025"   # SMTP server
+    networks:
+      - internal
