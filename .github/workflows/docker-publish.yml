@@ -50,6 +50,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:latest
+          cache-from: type=gha,scope=kitsu-zou
+          cache-to: type=gha,scope=kitsu-zou,mode=max
 
   build-and-push-kitsu-web:
     runs-on: ubuntu-latest
@@ -89,3 +91,5 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:latest
+          cache-from: type=gha,scope=kitsu-web
+          cache-to: type=gha,scope=kitsu-web,mode=max
