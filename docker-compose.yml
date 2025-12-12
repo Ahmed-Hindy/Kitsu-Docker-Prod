@@ -6,10 +6,16 @@ networks:
 
 volumes:
   pgdata:
+    name: kitsu_pgdata
   traefik_letsencrypt:
+    name: kitsu_traefik_letsencrypt
   backups:
+    name: kitsu_backups
   previews:
+    name: kitsu_previews
   meili:
+    name: kitsu_meili
+
 
 services:
   traefik:
