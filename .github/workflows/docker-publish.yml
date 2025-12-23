@@ -9,8 +9,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  ZOU_VERSION: v1.0.1
-  KITSU_WEB_VERSION: v1.0.0
   IMAGE_TAG: ${{ github.ref_name }}
 
 jobs:

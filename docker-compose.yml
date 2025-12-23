@@ -206,6 +206,10 @@ services:
       "
       echo '[zou-init-db] Running init-db (safe if already initialized)...';
       zou init-db || echo '[zou-init-db] DB already initialized or init-db failed non-critically.';
+      
+      echo '[zou-init-db] Running init-data to populate default statuses and types...';
+      zou init-data || echo '[zou-init-db] init-data failed non-critically (e.g., data already exists).';
+
       echo '[zou-init-db] Creating admin (or skipping if it already exists)...';
       zou create-admin ${ZOU_ADMIN_EMAIL} --password ${ZOU_ADMIN_PASSWORD} || echo '[zou-init-db] create-admin failed, possibly because the user already exists. Ignoring.';
       echo '[zou-init-db] Done.';
