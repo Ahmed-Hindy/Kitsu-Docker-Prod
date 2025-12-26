@@ -71,6 +71,22 @@ services:
     networks:
       - internal
 
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - kitsu-web
+      - zou-api
+      - zou-events
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - web
+      - internal
+    restart: unless-stopped
+
+  
   zou-api:
     image: ghcr.io/ahmed-hindy/kitsu-zou:latest
     env_file:
@@ -205,11 +221,9 @@ services:
   kitsu-web:
     image: ghcr.io/ahmed-hindy/kitsu-web:latest
     environment:
-      VITE_API_URL: ${ZOU_API_URL}
+      VITE_API_URL: /api
     depends_on:
       - zou-api
-    ports:
-      - "8080:80"
     networks:
       - web
       - internal
