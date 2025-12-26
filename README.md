@@ -97,8 +97,8 @@ The software versions (Kitsu/Zou) are pinned in the `versions.env` file. This al
 ### How to update Kitsu/Zou?
 1. Edit `versions.env` locally to the desired version:
    ```env
-   ZOU_VERSION=1.0.4
-   KITSU_VERSION=1.0.4
+   ZOU_VERSION=v1.0.4
+   KITSU_VERSION=v1.0.4
    ```
 2. Commit and push the change.
 3. GitHub Actions will build new images with those specific versions.
