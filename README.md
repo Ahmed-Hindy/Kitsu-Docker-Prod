@@ -92,6 +92,19 @@ docker exec -it <db-backup-container-name> ls -lh /backups
 
 Images are built and pushed to GHCR by GitHub Actions.
 
+The software versions (Kitsu/Zou) are pinned in the `versions.env` file. This allows independent updates of the Docker setup and the application versions.
+
+### How to update Kitsu/Zou?
+1. Edit `versions.env` locally to the desired version:
+   ```env
+   ZOU_VERSION=1.0.4
+   KITSU_VERSION=1.0.4
+   ```
+2. Commit and push the change.
+3. GitHub Actions will build new images with those specific versions.
+
+### How to update your deployment?
+
 To update:
 
 1. Pull new images:
