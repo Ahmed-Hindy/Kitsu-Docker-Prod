@@ -37,6 +37,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Load Application Versions
+        run: cat versions.env >> $GITHUB_ENV
+
       - name: Build and push Zou image
         uses: docker/build-push-action@v6
         with:
@@ -44,7 +47,7 @@ jobs:
           file: ./zou/Dockerfile
           push: true
           build-args: |
-            ZOU_VERSION=${{ env.IMAGE_TAG }}
+            ZOU_VERSION=${{ env.ZOU_VERSION }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:latest
@@ -76,6 +79,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Load Application Versions
+        run: cat versions.env >> $GITHUB_ENV
+
       - name: Build and push Kitsu web image
         uses: docker/build-push-action@v6
         with:
@@ -84,7 +90,7 @@ jobs:
           target: kitsu-web
           push: true
           build-args: |
-            KITSU_VERSION=${{ env.IMAGE_TAG }}
+            KITSU_VERSION=${{ env.KITSU_VERSION }}
             VITE_API_URL=/api
           tags: |
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:${{ env.IMAGE_TAG }}
