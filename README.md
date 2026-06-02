@@ -5,6 +5,10 @@ This Docker stack runs **Kitsu** (frontend) + **Zou** (backend) + **Postgres** +
 
 You don’t need to build anything locally – images are already published to GitHub Container Registry (GHCR).
 
+## Screenshot
+
+![Kitsu running in the Docker stack](docs/images/kitsu-running.png)
+
 </br>
 
 
