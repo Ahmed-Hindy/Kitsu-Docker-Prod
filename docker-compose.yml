@@ -104,7 +104,7 @@ services:
 
   
   zou-api:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     ports:
@@ -147,7 +147,7 @@ services:
     restart: unless-stopped
 
   zou-events:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     environment:
@@ -193,7 +193,7 @@ services:
     restart: unless-stopped
 
   zou-init-db:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     environment:
@@ -235,7 +235,7 @@ services:
     restart: "no"
 
   kitsu-web:
-    image: ghcr.io/ahmed-hindy/kitsu-web:latest
+    image: ghcr.io/ahmed-hindy/kitsu-web:${KITSU_VERSION:?Set KITSU_VERSION in versions.env}
     environment:
       VITE_API_URL: /api
     depends_on:

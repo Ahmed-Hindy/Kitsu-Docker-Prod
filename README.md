@@ -51,8 +51,8 @@ openssl rand -hex 32
 ### Step 3 – Pull images and start the containers
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose --env-file .env --env-file versions.env pull
+docker compose --env-file .env --env-file versions.env up -d
 ```
 
 Now open the URL for kitsu web, default is:
@@ -109,6 +109,7 @@ docker exec -it <db-backup-container-name> ls -lh /backups
 Images are built and pushed to GHCR by GitHub Actions.
 
 The software versions (Kitsu/Zou) are pinned in the `versions.env` file. This allows independent updates of the Docker setup and the application versions.
+Deployment commands load both `.env` and `versions.env` so Docker Compose pulls the explicit application-version tags instead of `latest`.
 
 ### How to update Kitsu/Zou?
 1. Edit `versions.env` locally to the desired version:
@@ -117,7 +118,8 @@ The software versions (Kitsu/Zou) are pinned in the `versions.env` file. This al
    KITSU_VERSION=v1.0.48
    ```
 2. Commit and push the change.
-3. GitHub Actions will build new images with those specific versions.
+3. GitHub Actions will build and publish images tagged with those specific versions.
+4. Wait for the image build workflow to finish before pulling the new tags in your deployment.
 
 ### How to update your deployment?
 
@@ -126,13 +128,13 @@ To update:
 1. Pull new images:
 
    ```bash
-   docker compose pull
+   docker compose --env-file .env --env-file versions.env pull
    ```
 
 2. Restart services:
 
    ```bash
-   docker compose up -d
+   docker compose --env-file .env --env-file versions.env up -d
    ```
 
 ---

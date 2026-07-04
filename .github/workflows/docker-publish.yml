@@ -49,6 +49,7 @@ jobs:
           build-args: |
             ZOU_VERSION=${{ env.ZOU_VERSION }}
           tags: |
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:${{ env.ZOU_VERSION }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-zou:latest
           cache-from: type=gha,scope=kitsu-zou
@@ -93,6 +94,7 @@ jobs:
             KITSU_VERSION=${{ env.KITSU_VERSION }}
             VITE_API_URL=/api
           tags: |
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:${{ env.KITSU_VERSION }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:latest
           cache-from: type=gha,scope=kitsu-web
