@@ -61,6 +61,8 @@ Now open the URL for kitsu web, default is:
 http://localhost:8080/
 ```
 
+This direct port is plain HTTP for local or LAN access.
+
 Traefik also exposes the stack on the configured HTTP/HTTPS ports:
 
 ```text
