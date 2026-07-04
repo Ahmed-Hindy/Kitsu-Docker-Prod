@@ -316,6 +316,8 @@ Added a non-publishing workflow:
 
 It runs on pushes to `main` and `dev/**`, pull requests, and manual dispatch. It validates Compose config and builds both Docker images without publishing them.
 
+The first run passed Compose validation but failed the Zou build because `versions.env` was still indexed with CRLF endings. The parsed tag became `v1.0.52\r`, which Git reported as `v1.0.52?`. The workflow now strips carriage returns when reading versions, and `versions.env` was renormalized to LF.
+
 This avoids manually dispatching the publish workflow on this branch. The publish workflow uses `github.ref_name` as the image tag, so a branch name containing slashes would be a bad Docker tag unless that workflow is hardened separately.
 
 ## Known caveats / not yet validated

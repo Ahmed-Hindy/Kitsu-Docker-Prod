@@ -44,11 +44,11 @@ jobs:
       - name: Build Zou image without publishing
         run: |
           set -eu
-          zou_version="$(grep '^ZOU_VERSION=' versions.env | cut -d= -f2)"
+          zou_version="$(grep '^ZOU_VERSION=' versions.env | cut -d= -f2 | tr -d '\r')"
           docker buildx build --load --build-arg "ZOU_VERSION=${zou_version}" -f zou/Dockerfile ./zou
 
       - name: Build Kitsu web image without publishing
         run: |
           set -eu
-          kitsu_version="$(grep '^KITSU_VERSION=' versions.env | cut -d= -f2)"
+          kitsu_version="$(grep '^KITSU_VERSION=' versions.env | cut -d= -f2 | tr -d '\r')"
           docker buildx build --load --target kitsu-web --build-arg "KITSU_VERSION=${kitsu_version}" --build-arg VITE_API_URL=/api -f Dockerfile .
