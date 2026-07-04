@@ -1,7 +1,9 @@
 networks:
   web:
+    name: kitsu_web
     external: false
   internal:
+    name: kitsu_internal
     external: false
 
 volumes:
@@ -17,26 +19,28 @@ volumes:
     name: kitsu_meili
 
 services:
-  # traefik:
-  #   image: traefik:v3.1
-  #   command:
-  #     - "--providers.docker=true"
-  #     - "--providers.docker.exposedbydefault=false"
-  #     - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT:-80}"
-  #     - "--entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT:-443}"
-  #     - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
-  #     - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
-  #     - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-  #   ports:
-  #     - "${TRAEFIK_HTTP_PORT:-80}:80"
-  #     - "${TRAEFIK_HTTPS_PORT:-443}:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #   networks:
-  #     - web
-  #     - internal
-  #   restart: unless-stopped
+  traefik:
+    image: traefik:v3.7.6
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL to a real email address for Let's Encrypt}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "${TRAEFIK_HTTPS_PORT:-443}:443"
+    volumes:
+      - traefik_letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web
+    restart: unless-stopped
 
   db:
     image: postgres:15
@@ -84,6 +88,18 @@ services:
     networks:
       - web
       - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=kitsu_web"
+      - "traefik.http.services.kitsu.loadbalancer.server.port=80"
+      - "traefik.http.routers.kitsu-http.rule=Host(`${KITSU_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.kitsu-http.entrypoints=web"
+      - "traefik.http.routers.kitsu-http.service=kitsu"
+      - "traefik.http.routers.kitsu-https.rule=Host(`${KITSU_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.kitsu-https.entrypoints=websecure"
+      - "traefik.http.routers.kitsu-https.service=kitsu"
+      - "traefik.http.routers.kitsu-https.tls=true"
+      - "traefik.http.routers.kitsu-https.tls.certresolver=letsencrypt"
     restart: unless-stopped
 
   
