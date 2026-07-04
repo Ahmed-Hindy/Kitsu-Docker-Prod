@@ -1,139 +1,213 @@
-# Kitsu Docker (Production-Style Stack)
+# Kitsu Docker Production Stack
 
-This Docker Compose stack runs **Kitsu** frontend, **Zou** backend, **Postgres**, **Redis**, **Meilisearch**, **nginx**, **Traefik**, Mailcatcher, and a Postgres backup container.
+This Docker Compose stack runs Kitsu, Zou, Postgres, Redis, Meilisearch, Traefik, Mailcatcher, and automated Postgres backups.
 
-The repository is designed for a practical production-style deployment while still being easy to run locally at `http://localhost:8080/`. Images are published to GitHub Container Registry, so you do not need to build Kitsu or Zou locally for normal use.
+The Kitsu and Zou application images are prebuilt and published to GitHub Container Registry. You do not need to build anything locally for a normal deployment.
 
 ## Screenshot
 
 ![Kitsu running in the Docker stack](docs/images/kitsu-running.png)
 
-## Quick start
+## Prerequisites
 
-Clone the repository:
+Install:
 
-```bash
-git clone https://github.com/Ahmed-Hindy/Kitsu-Docker-Prod.git
-cd Kitsu-Docker-Prod
-```
+* Docker Engine or Docker Desktop
+* Docker Compose v2 or newer
+* Git
 
-Create a local environment file if needed:
-
-```bash
-cp .env.example .env
-```
-
-For a local workstation, the important values are:
-
-```env
-DOCKER_HOST_IP=127.0.0.1
-KITSU_WEB_HOST_PORT=8080
-ZOU_API_HOST_PORT=5001
-KITSU_DOMAIN=localhost
-```
-
-For a LAN machine, set `DOCKER_HOST_IP` and `KITSU_DOMAIN` to the host IP or DNS name you want other machines to use.
-
-Generate a strong value for `ZOU_SECRET_KEY` before using this outside local testing:
+Check Docker:
 
 ```bash
-openssl rand -hex 32
+docker compose version
 ```
 
-Pull images and start the stack:
+## Quick Start
 
-```bash
-docker compose --env-file .env --env-file versions.env pull
-docker compose --env-file .env --env-file versions.env up -d
-```
+1. Clone the repository:
 
-Open Kitsu:
+   ```bash
+   git clone https://github.com/Ahmed-Hindy/Kitsu-Docker-Prod.git
+   cd Kitsu-Docker-Prod
+   ```
 
-```text
-http://localhost:8080/
-```
+2. Review `.env`.
 
-Default local login values are controlled by `.env`:
+   The repository includes a working local/LAN `.env`, plus `.env.example` as a safer template for new local deployments. Before using this for a real deployment, change at least:
+
+   ```env
+   KITSU_DOMAIN=kitsu.example.com
+   LETSENCRYPT_EMAIL=admin@example.com
+   ZOU_SECRET_KEY=<generate-a-long-random-secret>
+   ZOU_ADMIN_EMAIL=admin@example.com
+   ZOU_ADMIN_PASSWORD=<choose-a-strong-password>
+   ```
+
+   Generate a secret key with:
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+   The default direct web and optional Zou API host ports are controlled by:
+
+   ```env
+   KITSU_WEB_HOST_PORT=8080
+   ZOU_API_HOST_PORT=5001
+   ```
+
+3. Keep `versions.env` with the deployment.
+
+   Docker Compose uses this file to pull explicit Kitsu/Zou image tags:
+
+   ```env
+   ZOU_VERSION=v1.0.52
+   KITSU_VERSION=v1.0.48
+   ```
+
+4. Pull and start the stack:
+
+   ```bash
+   docker compose --env-file .env --env-file versions.env pull
+   docker compose --env-file .env --env-file versions.env up -d
+   ```
+
+5. Verify the containers:
+
+   ```bash
+   docker compose --env-file .env --env-file versions.env ps
+   ```
+
+6. Open Kitsu:
+
+   ```text
+   http://localhost:8080/
+   ```
+
+   If you changed `KITSU_WEB_HOST_PORT`, use that port instead.
+
+## Default Login
+
+The first admin user is created by the `zou-init-db` service from these `.env` values:
 
 ```env
 ZOU_ADMIN_EMAIL=admin@example.com
 ZOU_ADMIN_PASSWORD=mysecretpassword
 ```
 
-Change these before using the stack for anything important.
+If you change those values after the database has already been initialized, the existing admin account is not reset automatically.
 
-## Public routing with Traefik
+## Public Access And TLS
 
-Traefik exposes the stack on the configured HTTP and HTTPS ports:
+The stack exposes two entry paths:
+
+* Direct local/LAN access through `http://<host>:${KITSU_WEB_HOST_PORT}`
+* Traefik on `${TRAEFIK_HTTP_PORT}` and `${TRAEFIK_HTTPS_PORT}`
+
+For Let's Encrypt certificates, set `KITSU_DOMAIN` to a real DNS hostname that points to this host. A LAN IP address is fine for HTTP routing, but public certificate issuance requires DNS.
+
+## Useful URLs
+
+With the default `.env`:
 
 ```text
-http://<KITSU_DOMAIN>/
-https://<KITSU_DOMAIN>/
+Kitsu:       http://localhost:8080/
+Mailcatcher: http://localhost:1080/
+Zou API:     http://localhost:5001/
 ```
 
-Use a real DNS hostname that points to this host for Let's Encrypt certificates. A LAN IP address can work for plain HTTP routing, but public certificate issuance requires a DNS name.
+## Updating The Deployment
 
-## Backups
+Images are built and pushed to GHCR by GitHub Actions.
 
-This stack runs automatic Postgres backups in a separate `db-backup` container.
-
-The main settings are:
-
-```env
-BACKUP_CRON=30 1 * * *
-BACKUP_RETENTION_DAYS=14
-```
-
-See [`docs/backups.md`](docs/backups.md) for manual backup, listing, copy, and restore instructions.
-
-## Updating Kitsu and Zou
-
-Application versions are pinned in [`versions.env`](versions.env):
-
-```env
-ZOU_VERSION=v1.0.52
-KITSU_VERSION=v1.0.48
-```
+The Kitsu and Zou versions are pinned in `versions.env`. Deployment commands must load both `.env` and `versions.env` so Compose pulls the explicit application-version tags instead of `latest`.
 
 To update Kitsu or Zou:
 
 1. Edit `versions.env`.
 2. Commit and push the change.
-3. GitHub Actions builds and publishes new GHCR images.
-4. Pull and restart the deployment:
+3. Wait for the image build workflow to finish.
+4. Pull and recreate the stack:
+
+   ```bash
+   docker compose --env-file .env --env-file versions.env pull
+   docker compose --env-file .env --env-file versions.env up -d
+   docker compose --env-file .env --env-file versions.env restart nginx
+   ```
+
+The `nginx` restart refreshes Docker DNS resolution after app containers are recreated.
+
+## Backups
+
+This stack runs automatic Postgres backups in the `db-backup` container.
+
+* Schedule: `BACKUP_CRON` in `.env` (default: every day at 01:30 UTC)
+* Retention: `BACKUP_RETENTION_DAYS` in `.env` (default: 14 days)
+* Storage: the `kitsu_backups` Docker volume
+
+Trigger a manual backup:
 
 ```bash
-docker compose --env-file .env --env-file versions.env pull
-docker compose --env-file .env --env-file versions.env up -d
+docker compose --env-file .env --env-file versions.env exec db-backup /bin/bash -lc "/backup_once.sh"
 ```
 
-## How this stack differs from the official all-in-one image
+List backup files:
 
-The official `cgwire/cgwire` image is useful for quickly trying Kitsu in one container. It bundles the application pieces together and can be started with a simple `docker run` command.
+```bash
+docker compose --env-file .env --env-file versions.env exec db-backup ls -lh /backups
+```
 
-This repository is different. It separates the main services:
+See [`docs/backups.md`](docs/backups.md) for manual backup, listing, copy, restore, and Windows Git Bash notes.
 
-- `kitsu-web` for the frontend
-- `zou-api` for the backend API
-- `zou-events` for event streaming
-- `db` for Postgres
-- `redis` for the key-value store
-- `meilisearch` for indexing
-- `nginx` for local app/API routing
-- `traefik` for public HTTP/HTTPS routing
-- `db-backup` for scheduled database backups
-- `mailcatcher` for local email testing
+## Common Commands
 
-That separation makes the stack easier to operate, debug, back up, and extend, but it also means configuration matters more than with the all-in-one image.
+View logs:
 
-## Development notes
+```bash
+docker compose --env-file .env --env-file versions.env logs -f
+```
 
-The current hardening plan is documented in [`docs/implementation-plan.md`](docs/implementation-plan.md).
+Restart the stack:
 
-Before committing changes, run:
+```bash
+docker compose --env-file .env --env-file versions.env restart
+```
+
+Stop the stack without deleting data:
+
+```bash
+docker compose --env-file .env --env-file versions.env down
+```
+
+Remove the stack and named volumes:
+
+```bash
+docker compose --env-file .env --env-file versions.env down -v
+```
+
+## Development validation
+
+For local validation before committing stack changes, run:
 
 ```bash
 docker compose --env-file .env --env-file versions.env config --quiet
+docker compose --env-file .env.example --env-file versions.env config --quiet
 sh scripts/smoke-test.sh
-git status --short
 ```
+
+## Architecture
+
+This project uses separate containers instead of the official all-in-one `cgwire/cgwire` image:
+
+* `kitsu-web` for the frontend
+* `zou-api` for the API
+* `zou-events` for Socket.IO events
+* `db` for Postgres
+* `redis` for the key/value store
+* `meilisearch` for indexing
+* `nginx` as the Kitsu/Zou frontend proxy
+* `traefik` for public HTTP/HTTPS routing
+* `db-backup` for automated database backups
+* `mailcatcher` for local development mail
+
+The official `cgwire/cgwire` image is useful for trying Kitsu quickly on one machine. This stack is intended to be closer to a production-style deployment with separate services, reverse proxying, and backups.
