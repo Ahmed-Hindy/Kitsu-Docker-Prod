@@ -230,7 +230,9 @@ services:
     restart: unless-stopped
 
   db-backup:
-    image: postgres:15
+    build:
+      context: ./backups
+    image: ghcr.io/ahmed-hindy/kitsu-db-backup:latest
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGUSER: ${POSTGRES_USER}
@@ -240,8 +242,6 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
     volumes:
       - backups:/backups
-      - ./backups/backup.sh:/backup.sh:ro
-    entrypoint: [ "/bin/bash", "/backup.sh" ]
     networks:
       - internal
     restart: unless-stopped
