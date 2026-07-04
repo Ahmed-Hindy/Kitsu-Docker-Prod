@@ -103,7 +103,7 @@ services:
     restart: unless-stopped
 
   zou-api:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     ports:
@@ -146,7 +146,7 @@ services:
     restart: unless-stopped
 
   zou-events:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     environment:
@@ -192,7 +192,7 @@ services:
     restart: unless-stopped
 
   zou-init-db:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
     env_file:
       - .env
     environment:
@@ -234,7 +234,7 @@ services:
     restart: "no"
 
   kitsu-web:
-    image: ghcr.io/ahmed-hindy/kitsu-web:${KITSU_VERSION:-v1.0.48}
+    image: ghcr.io/ahmed-hindy/kitsu-web:${KITSU_VERSION:?Set KITSU_VERSION in versions.env}
     environment:
       VITE_API_URL: /api
     depends_on:
@@ -245,7 +245,9 @@ services:
     restart: unless-stopped
 
   db-backup:
-    image: postgres:15
+    build:
+      context: ./backups
+    image: ghcr.io/ahmed-hindy/kitsu-db-backup:latest
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGUSER: ${POSTGRES_USER}
@@ -255,8 +257,6 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
     volumes:
       - backups:/backups
-      - ./backups/backup.sh:/backup.sh:ro
-    entrypoint: [ "/bin/bash", "/backup.sh" ]
     networks:
       - internal
     restart: unless-stopped
