@@ -33,7 +33,7 @@ docker compose version
 
 2. Review `.env`.
 
-   The repository includes a working local/LAN `.env`. Before using this for a real deployment, change at least:
+   The repository includes a working local/LAN `.env`, plus `.env.example` as a safer template for new local deployments. Before using this for a real deployment, change at least:
 
    ```env
    KITSU_DOMAIN=kitsu.example.com
@@ -49,10 +49,11 @@ docker compose version
    openssl rand -hex 32
    ```
 
-   The default direct web port is controlled by:
+   The default direct web and optional Zou API host ports are controlled by:
 
    ```env
-   KITSU_WEB_PORT=8080
+   KITSU_WEB_HOST_PORT=8080
+   ZOU_API_HOST_PORT=5001
    ```
 
 3. Keep `versions.env` with the deployment.
@@ -83,7 +84,7 @@ docker compose version
    http://localhost:8080/
    ```
 
-   If you changed `KITSU_WEB_PORT`, use that port instead.
+   If you changed `KITSU_WEB_HOST_PORT`, use that port instead.
 
 ## Default Login
 
@@ -100,7 +101,7 @@ If you change those values after the database has already been initialized, the 
 
 The stack exposes two entry paths:
 
-* Direct local/LAN access through `http://<host>:${KITSU_WEB_PORT}`
+* Direct local/LAN access through `http://<host>:${KITSU_WEB_HOST_PORT}`
 * Traefik on `${TRAEFIK_HTTP_PORT}` and `${TRAEFIK_HTTPS_PORT}`
 
 For Let's Encrypt certificates, set `KITSU_DOMAIN` to a real DNS hostname that points to this host. A LAN IP address is fine for HTTP routing, but public certificate issuance requires DNS.
@@ -156,6 +157,8 @@ List backup files:
 docker compose --env-file .env --env-file versions.env exec db-backup ls -lh /backups
 ```
 
+See [`docs/backups.md`](docs/backups.md) for manual backup, listing, copy, restore, and Windows Git Bash notes.
+
 ## Common Commands
 
 View logs:
@@ -180,6 +183,16 @@ Remove the stack and named volumes:
 
 ```bash
 docker compose --env-file .env --env-file versions.env down -v
+```
+
+## Development validation
+
+For local validation before committing stack changes, run:
+
+```bash
+docker compose --env-file .env --env-file versions.env config --quiet
+docker compose --env-file .env.example --env-file versions.env config --quiet
+sh scripts/smoke-test.sh
 ```
 
 ## Architecture
