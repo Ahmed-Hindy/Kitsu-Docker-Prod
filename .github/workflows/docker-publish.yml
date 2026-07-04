@@ -97,3 +97,40 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-web:latest
           cache-from: type=gha,scope=kitsu-web
           cache-to: type=gha,scope=kitsu-web,mode=max
+
+  build-and-push-db-backup:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute lowercase owner
+        id: vars
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push db backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backups
+          file: ./backups/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-db-backup:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.OWNER_LC }}/kitsu-db-backup:latest
+          cache-from: type=gha,scope=kitsu-db-backup
+          cache-to: type=gha,scope=kitsu-db-backup,mode=max
