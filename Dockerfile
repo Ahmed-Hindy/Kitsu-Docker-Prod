@@ -1,5 +1,5 @@
 # ---------- Build stage ----------
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # KITSU_VERSION comes from build args
-ARG KITSU_VERSION=v1.0.0
+ARG KITSU_VERSION=v1.0.48
 ENV KITSU_VERSION=${KITSU_VERSION}
 RUN git clone --depth=1 --branch "${KITSU_VERSION}" https://github.com/cgwire/kitsu.git .
 

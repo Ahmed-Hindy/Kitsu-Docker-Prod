@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-ARG ZOU_VERSION=v1.0.1
+ARG ZOU_VERSION=v1.0.52
 ENV ZOU_VERSION=${ZOU_VERSION}
 RUN git clone --depth=1 --branch ${ZOU_VERSION} https://github.com/cgwire/zou.git .
 
