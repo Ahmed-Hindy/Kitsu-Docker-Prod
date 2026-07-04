@@ -306,6 +306,18 @@ InsecureKeyLengthWarning: The HMAC key is 16 bytes long, which is below the mini
 
 Cause: the current tracked `.env` uses `ZOU_SECRET_KEY=mysecretpassword`. The README already recommends generating a strong value with `openssl rand -hex 32`. Leave `.env` tracked and unchanged unless the user approves changing local secrets.
 
+### Branch validation workflow
+
+Added a non-publishing workflow:
+
+```text
+.github/workflows/validate-stack.yml
+```
+
+It runs on pushes to `main` and `dev/**`, pull requests, and manual dispatch. It validates Compose config and builds both Docker images without publishing them.
+
+This avoids manually dispatching the publish workflow on this branch. The publish workflow uses `github.ref_name` as the image tag, so a branch name containing slashes would be a bad Docker tag unless that workflow is hardened separately.
+
 ## Known caveats / not yet validated
 
 These still need follow-up:
@@ -441,7 +453,7 @@ Already done:
 - Manual backup creation succeeded from Git Bash with MSYS_NO_PATHCONV=1.
 
 Next recommended steps:
-1. Review post-commit CI/build status if this branch is pushed.
+1. Push the branch validation workflow and review its run status.
 2. Mailcatcher invite/email workflow can be tested next.
 3. Decide later whether to change the tracked local ZOU_SECRET_KEY to remove the 16-byte key warning, or leave it as local-demo-only.
 4. Keep larger architecture changes deferred until explicitly approved.

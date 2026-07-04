@@ -32,5 +32,5 @@ These are intentionally left for later commits because they are larger behaviora
 
 - Split Compose overlays into core, local, Traefik, backup, and development files.
 - Add tested database and Meilisearch upgrade flows.
-- Expand smoke tests into optional CI validation for Compose config and Docker builds.
+- Keep branch validation focused on Compose config and Docker build checks.
 - Revisit whether `zou-api` should be exposed directly on the host or only through nginx.
