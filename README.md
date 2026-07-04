@@ -32,6 +32,7 @@ You can edit the `.env`:
 ```env
 # Domain and TLS
 KITSU_DOMAIN=kitsu.example.com  # if you have a domain
+LETSENCRYPT_EMAIL=admin@example.com
 
 # First Kitsu admin (Login with these )
 ZOU_ADMIN_EMAIL=admin@example.com
@@ -59,6 +60,15 @@ Now open the URL for kitsu web, default is:
 ```text
 http://localhost:8080/
 ```
+
+Traefik also exposes the stack on the configured HTTP/HTTPS ports:
+
+```text
+http://<KITSU_DOMAIN>/
+https://<KITSU_DOMAIN>/
+```
+
+Use a real DNS hostname that points to this host for Let's Encrypt certificates. A LAN IP address works for HTTP routing, but public certificate issuance requires a DNS name.
 
 Login with:
 
