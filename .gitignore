@@ -1,0 +1,22 @@
+# Local environment overrides
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+
+# Local tooling / temporary files
+qc
+query
+
+# Traefik runtime state
+traefik/acme.json
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -20,7 +20,7 @@ ARG ZOU_VERSION=v1.0.52
 ENV ZOU_VERSION=${ZOU_VERSION}
 RUN git clone --depth=1 --branch ${ZOU_VERSION} https://github.com/cgwire/zou.git .
 
-# Create a virtualenv for zou + deps
+# Create a virtualenv for Zou + dependencies.
 RUN python -m venv /opt/venv \
   && . /opt/venv/bin/activate \
   && pip install --upgrade pip \
@@ -28,13 +28,12 @@ RUN python -m venv /opt/venv \
   && pip install --no-cache-dir -r requirements.txt \
   && pip install --no-cache-dir .
 
-# Optional: drop git metadata/tests/docs from app to save space
+# Drop source-control metadata and non-runtime folders from the image.
 RUN rm -rf .git tests docs
 
 # ---------- Runtime stage ----------
 FROM python:3.11-slim
 
-# Only runtime libs; no build-essential, no git, no libpq-dev
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libpq5 \
@@ -48,10 +47,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy virtualenv and app from builder
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
-COPY ../gunicorn.conf.py /app/gunicorn.conf.py
+COPY gunicorn.conf.py /app/gunicorn.conf.py
 
 ENV FLASK_APP=zou.app
 ENV VIRTUAL_ENV=/opt/venv
