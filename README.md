@@ -92,7 +92,7 @@ The first admin user is created by the `zou-init-db` service from these `.env` v
 
 ```env
 ZOU_ADMIN_EMAIL=admin@example.com
-ZOU_ADMIN_PASSWORD=mysecretpassword
+ZOU_ADMIN_PASSWORD=<choose-a-strong-password>
 ```
 
 If you change those values after the database has already been initialized, the existing admin account is not reset automatically.

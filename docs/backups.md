@@ -68,7 +68,7 @@ docker compose stop zou-api zou-events zou-init-db kitsu-web nginx
 Restore a compressed SQL dump:
 
 ```bash
-gunzip -c <backup-file>.sql.gz | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+gunzip -c <backup-file>.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
 Start the services again:
