@@ -43,8 +43,8 @@ openssl rand -hex 32
 Pull images and start the stack:
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose --env-file .env --env-file versions.env pull
+docker compose --env-file .env --env-file versions.env up -d
 ```
 
 Open Kitsu:
@@ -103,8 +103,8 @@ To update Kitsu or Zou:
 4. Pull and restart the deployment:
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose --env-file .env --env-file versions.env pull
+docker compose --env-file .env --env-file versions.env up -d
 ```
 
 ## How this stack differs from the official all-in-one image
@@ -133,7 +133,7 @@ The current hardening plan is documented in [`docs/implementation-plan.md`](docs
 Before committing changes, run:
 
 ```bash
-docker compose config --quiet
+docker compose --env-file .env --env-file versions.env config --quiet
 sh scripts/smoke-test.sh
 git status --short
 ```

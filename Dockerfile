@@ -25,4 +25,4 @@ FROM nginx:1.27-alpine AS kitsu-web
 
 # Copy built assets from builder
 COPY --from=build /app/dist/ /usr/share/nginx/html/
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY kitsu-web.nginx.conf /etc/nginx/conf.d/default.conf

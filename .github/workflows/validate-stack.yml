@@ -24,10 +24,10 @@ jobs:
         run: docker compose version
 
       - name: Validate Compose config
-        run: docker compose config --quiet
+        run: docker compose --env-file .env --env-file versions.env config --quiet
 
       - name: Validate Compose config with example env
-        run: docker compose --env-file .env.example config --quiet
+        run: docker compose --env-file .env.example --env-file versions.env config --quiet
 
   docker-builds:
     name: Docker builds

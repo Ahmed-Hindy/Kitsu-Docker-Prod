@@ -3,6 +3,7 @@ set -eu
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 ENV_FILE="${ENV_FILE:-.env}"
+VERSION_ENV_FILE="${VERSION_ENV_FILE:-versions.env}"
 HOST_PORT="${KITSU_WEB_HOST_PORT:-8080}"
 
 if [ -f "$ENV_FILE" ]; then
@@ -15,15 +16,15 @@ fi
 BASE_URL="${KITSU_BASE_URL:-http://localhost:${HOST_PORT}}"
 
 echo "[smoke-test] Validating Compose file..."
-docker compose -f "$COMPOSE_FILE" config --quiet
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --env-file "$VERSION_ENV_FILE" config --quiet
 
 if [ -f ".env.example" ]; then
   echo "[smoke-test] Validating Compose file with .env.example..."
-  docker compose -f "$COMPOSE_FILE" --env-file .env.example config --quiet
+  docker compose -f "$COMPOSE_FILE" --env-file .env.example --env-file "$VERSION_ENV_FILE" config --quiet
 fi
 
 echo "[smoke-test] Checking running services..."
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --env-file "$VERSION_ENV_FILE" ps
 
 echo "[smoke-test] Checking Kitsu web at ${BASE_URL}/..."
 curl -fsS "${BASE_URL}/" >/dev/null

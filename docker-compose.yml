@@ -20,7 +20,7 @@ volumes:
 
 services:
   traefik:
-    image: traefik:v3.1
+    image: traefik:v3.7.6
     command:
       - "--api.dashboard=false"
       - "--providers.docker=true"
@@ -103,7 +103,7 @@ services:
     restart: unless-stopped
 
   zou-api:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
     env_file:
       - .env
     ports:
@@ -146,7 +146,7 @@ services:
     restart: unless-stopped
 
   zou-events:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
     env_file:
       - .env
     environment:
@@ -192,7 +192,7 @@ services:
     restart: unless-stopped
 
   zou-init-db:
-    image: ghcr.io/ahmed-hindy/kitsu-zou:latest
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:-v1.0.52}
     env_file:
       - .env
     environment:
@@ -234,7 +234,7 @@ services:
     restart: "no"
 
   kitsu-web:
-    image: ghcr.io/ahmed-hindy/kitsu-web:latest
+    image: ghcr.io/ahmed-hindy/kitsu-web:${KITSU_VERSION:-v1.0.48}
     environment:
       VITE_API_URL: /api
     depends_on:
