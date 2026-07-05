@@ -15,6 +15,8 @@ volumes:
     name: kitsu_backups
   previews:
     name: kitsu_previews
+  zou_tmp:
+    name: kitsu_zou_tmp
   meili:
     name: kitsu_meili
 
@@ -43,7 +45,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:15
+    image: postgres:${POSTGRES_VERSION:?Set POSTGRES_VERSION in versions.env}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kitsu}
@@ -62,26 +64,39 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -p $${REDIS_PORT:-6379} ping | grep -q PONG" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - internal
 
   meilisearch:
-    image: getmeili/meilisearch:v1.11
+    image: getmeili/meilisearch:${MEILI_VERSION:?Set MEILI_VERSION in versions.env}
     restart: unless-stopped
     environment:
       MEILI_NO_ANALYTICS: "true"
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
       - meili:/meili_data
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:$${MEILI_PORT:-7700}/health | grep -q available" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     networks:
       - internal
 
   nginx:
     image: nginx:alpine
     depends_on:
-      - kitsu-web
-      - zou-api
-      - zou-events
+      kitsu-web:
+        condition: service_healthy
+      zou-api:
+        condition: service_healthy
+      zou-events:
+        condition: service_healthy
     ports:
       - "${KITSU_WEB_HOST_PORT:-8080}:80"
     volumes:
@@ -101,6 +116,11 @@ services:
       - "traefik.http.routers.kitsu-https.service=kitsu"
       - "traefik.http.routers.kitsu-https.tls=true"
       - "traefik.http.routers.kitsu-https.tls.certresolver=letsencrypt"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     restart: unless-stopped
 
   zou-api:
@@ -129,6 +149,8 @@ services:
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
+      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
+      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
 
       MAIL_SERVER: mailcatcher
       MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
@@ -138,14 +160,27 @@ services:
       DOMAIN_PROTOCOL: ${DOMAIN_PROTOCOL}
       DOMAIN_NAME: ${DOCKER_HOST_IP:-localhost}:${KITSU_WEB_HOST_PORT:-8080}
       CORS_ALLOWED_ORIGINS: ${KITSU_WEB_URL:-http://localhost:8080}
+      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
+      TMP_DIR: ${TMP_DIR:-/tmp/zou}
+    volumes:
+      - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
+      - zou_tmp:${TMP_DIR:-/tmp/zou}
 
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       meilisearch:
-        condition: service_started
+        condition: service_healthy
+      zou-init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, urllib.request; port = os.environ.get(\"ZOU_API_INTERNAL_PORT\", \"8000\"); response = urllib.request.urlopen(\"http://127.0.0.1:%s/\" % port, timeout=5); raise SystemExit(0 if response.status < 500 else 1)'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
     networks:
       - internal
     restart: unless-stopped
@@ -173,6 +208,8 @@ services:
 
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
+      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
+      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
 
       MAIL_SERVER: mailcatcher
       MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
@@ -194,9 +231,67 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       meilisearch:
-        condition: service_started
+        condition: service_healthy
+      zou-init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, socket; port = int(os.environ.get(\"ZOU_EVENTS_INTERNAL_PORT\", \"5001\")); socket.create_connection((\"127.0.0.1\", port), timeout=5).close()'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      - internal
+    restart: unless-stopped
+
+  zou-jobs:
+    image: ghcr.io/ahmed-hindy/kitsu-zou:${ZOU_VERSION:?Set ZOU_VERSION in versions.env}
+    env_file:
+      - .env
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE: ${POSTGRES_DB}
+
+      KV_TYPE: redis
+      KV_HOST: redis
+      KV_PORT: ${REDIS_PORT}
+
+      INDEXER_TYPE: meilisearch
+      INDEXER_HOST: meilisearch
+      INDEXER_PORT: ${MEILI_PORT}
+      INDEXER_KEY: ${MEILI_MASTER_KEY}
+
+      SECRET_KEY: ${ZOU_SECRET_KEY}
+      LOG_LEVEL: ${ZOU_LOG_LEVEL}
+      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
+      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
+      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
+      TMP_DIR: ${TMP_DIR:-/tmp/zou}
+    command: [ "/opt/venv/bin/rq", "worker", "-c", "zou.job_settings" ]
+    volumes:
+      - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
+      - zou_tmp:${TMP_DIR:-/tmp/zou}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      zou-init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os; from redis import Redis; Redis(host=os.environ.get(\"KV_HOST\", \"redis\"), port=int(os.environ.get(\"KV_PORT\", \"6379\")), socket_connect_timeout=5).ping()'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
     networks:
       - internal
     restart: unless-stopped
@@ -228,28 +323,24 @@ services:
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
+      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
+      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
+      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
+      TMP_DIR: ${TMP_DIR:-/tmp/zou}
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       meilisearch:
-        condition: service_started
-      zou-api:
-        condition: service_started
+        condition: service_healthy
+    volumes:
+      - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
+      - zou_tmp:${TMP_DIR:-/tmp/zou}
+      - ./zou/init-db.sh:/usr/local/bin/zou-init-db:ro
     networks:
       - internal
-    entrypoint: [ "sh", "-c" ]
-    command: >
-      echo '[zou-init-db] Running init-db (safe if already initialized)...';
-      zou init-db || echo '[zou-init-db] DB already initialized or init-db failed non-critically.';
-
-      echo '[zou-init-db] Running init-data to populate default statuses and types...';
-      zou init-data || echo '[zou-init-db] init-data failed non-critically (e.g., data already exists).';
-
-      echo '[zou-init-db] Creating admin (or skipping if it already exists)...';
-      zou create-admin "$${ZOU_ADMIN_EMAIL}" --password "$${ZOU_ADMIN_PASSWORD}" || echo '[zou-init-db] create-admin failed, possibly because the user already exists. Ignoring.';
-      echo '[zou-init-db] Done.';
+    entrypoint: [ "sh", "/usr/local/bin/zou-init-db" ]
     restart: "no"
 
   kitsu-web:
@@ -257,7 +348,13 @@ services:
     environment:
       VITE_API_URL: /api
     depends_on:
-      - zou-api
+      zou-api:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     networks:
       - web
       - internal
@@ -274,8 +371,10 @@ services:
       PGHOST: db
       BACKUP_CRON: ${BACKUP_CRON:-30 1 * * *}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      PREVIEW_BACKUP_RETENTION_DAYS: ${PREVIEW_BACKUP_RETENTION_DAYS:-14}
     volumes:
       - backups:/backups
+      - previews:/previews:ro
     depends_on:
       db:
         condition: service_healthy

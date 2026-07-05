@@ -1,6 +1,14 @@
 # Backups and Restore
 
-The stack includes a `db-backup` service that stores compressed PostgreSQL dumps in the `backups` Docker volume.
+The stack includes a `db-backup` service that stores compressed PostgreSQL dumps and preview-file archives in the `backups` Docker volume.
+
+Kitsu data is split across storage targets:
+
+- PostgreSQL stores application records such as users, projects, tasks, comments, and metadata.
+- The `previews` Docker volume stores uploaded/generated preview media from Zou at `PREVIEW_FOLDER` (`/opt/zou/previews` by default).
+- The `zou_tmp` Docker volume stores temporary Zou runtime files at `TMP_DIR` (`/tmp/zou` by default). Treat this as runtime scratch data, not as a restore target.
+
+A database dump alone is not a complete production restore once preview files exist. Restore both the database dump and the matching preview archive.
 
 All commands below assume you are running from the repository root. Load both `.env` and `versions.env` because the Compose file uses deployment tags from `versions.env`.
 
@@ -11,11 +19,17 @@ The schedule is controlled by `.env`:
 ```env
 BACKUP_CRON=30 1 * * *
 BACKUP_RETENTION_DAYS=14
+PREVIEW_BACKUP_RETENTION_DAYS=14
 ```
 
-The default cron value runs every day at 01:30 UTC. Old `.sql.gz` files are deleted after the configured retention period.
+The default cron value runs every day at 01:30 UTC. Old `.sql.gz` files are deleted after `BACKUP_RETENTION_DAYS`; old `previews_*.tar.gz` files are deleted after `PREVIEW_BACKUP_RETENTION_DAYS`.
 
-## Manual backup
+Each scheduled run creates:
+
+- `<database>_<timestamp>.sql.gz` from PostgreSQL.
+- `previews_<timestamp>.tar.gz` from the mounted `previews` volume.
+
+## Manual full backup
 
 Run this while the stack is up:
 
@@ -27,6 +41,34 @@ On Windows Git Bash, disable MSYS path conversion so `/backup_once.sh` is passed
 
 ```bash
 MSYS_NO_PATHCONV=1 docker compose --env-file .env --env-file versions.env exec db-backup /backup_once.sh
+```
+
+## Manual database-only backup
+
+Run this when you only need a PostgreSQL dump:
+
+```bash
+docker compose --env-file .env --env-file versions.env exec db-backup /backup_db_once.sh
+```
+
+On Windows Git Bash:
+
+```bash
+MSYS_NO_PATHCONV=1 docker compose --env-file .env --env-file versions.env exec db-backup /backup_db_once.sh
+```
+
+## Manual preview-only backup
+
+Run this when you only need a preview-file archive:
+
+```bash
+docker compose --env-file .env --env-file versions.env exec db-backup /backup_previews_once.sh
+```
+
+On Windows Git Bash:
+
+```bash
+MSYS_NO_PATHCONV=1 docker compose --env-file .env --env-file versions.env exec db-backup /backup_previews_once.sh
 ```
 
 List the generated backups:
@@ -53,6 +95,7 @@ Then copy the backup out:
 
 ```bash
 docker cp <db-backup-container>:/backups/<backup-file>.sql.gz ./<backup-file>.sql.gz
+docker cp <db-backup-container>:/backups/<preview-backup-file>.tar.gz ./<preview-backup-file>.tar.gz
 ```
 
 ## Restore warning
@@ -64,13 +107,25 @@ Restoring into an existing database can overwrite or conflict with current data.
 Stop application services first so they do not write while the restore is running:
 
 ```bash
-docker compose --env-file .env --env-file versions.env stop zou-api zou-events zou-init-db kitsu-web nginx
+docker compose --env-file .env --env-file versions.env stop zou-api zou-events zou-jobs zou-init-db kitsu-web nginx db-backup
 ```
 
 Restore a compressed SQL dump:
 
 ```bash
 gunzip -c <backup-file>.sql.gz | docker compose --env-file .env --env-file versions.env exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Restore the matching preview archive into the `previews` volume:
+
+```bash
+docker run --rm -v kitsu_previews:/previews -v "$PWD:/restore:ro" alpine sh -c 'cd /previews && tar -xzf /restore/<preview-backup-file>.tar.gz'
+```
+
+On Windows Git Bash:
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v kitsu_previews:/previews -v "$PWD:/restore:ro" alpine sh -c 'cd /previews && tar -xzf /restore/<preview-backup-file>.tar.gz'
 ```
 
 Start the services again:

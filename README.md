@@ -58,12 +58,14 @@ docker compose version
 
 3. Keep `versions.env` with the deployment.
 
-   Docker Compose uses this file to pull explicit Kitsu, Zou, and backup image tags:
+   Docker Compose uses this file to pull explicit Kitsu, Zou, backup, Postgres, and Meilisearch image tags:
 
    ```env
    ZOU_VERSION=v1.0.52
    KITSU_VERSION=v1.0.48
    BACKUP_IMAGE_TAG=main
+   POSTGRES_VERSION=15
+   MEILI_VERSION=v1.11
    ```
 
 4. Pull and start the stack:
@@ -96,7 +98,7 @@ ZOU_ADMIN_EMAIL=admin@example.com
 ZOU_ADMIN_PASSWORD=<choose-a-strong-password>
 ```
 
-If you change those values after the database has already been initialized, the existing admin account is not reset automatically.
+`zou-init-db` is idempotent: it runs schema creation only for an empty database, applies migrations for an initialized database, creates the admin account when the configured email is missing, and promotes that email if it exists without the admin role. If you change those values after the database has already been initialized, the existing admin password is not reset automatically. Search indexing is reset only after first initialization, not on every restart.
 
 ## Public Access And TLS
 
@@ -121,7 +123,7 @@ Zou API:     http://localhost:5001/
 
 Images are built and pushed to GHCR by GitHub Actions.
 
-The Kitsu, Zou, and backup image tags are declared in `versions.env`. Deployment commands must load both `.env` and `versions.env` so Compose pulls explicit image tags instead of relying on `latest`.
+The Kitsu, Zou, backup, Postgres, and Meilisearch image tags are declared in `versions.env`. Deployment commands must load both `.env` and `versions.env` so Compose pulls explicit image tags instead of relying on `latest`.
 
 To update Kitsu or Zou:
 
@@ -138,13 +140,18 @@ To update Kitsu or Zou:
 
 The `nginx` restart refreshes Docker DNS resolution after app containers are recreated.
 
+Changing `POSTGRES_VERSION` or `MEILI_VERSION` is an infrastructure upgrade, not a normal app update. Keep those changes in separate tested work after taking backups and planning the migration; see [`docs/upgrades.md`](docs/upgrades.md).
+
 ## Backups
 
 This stack runs automatic Postgres backups in the `db-backup` container.
 
 * Schedule: `BACKUP_CRON` in `.env` (default: every day at 01:30 UTC)
 * Retention: `BACKUP_RETENTION_DAYS` in `.env` (default: 14 days)
+* Preview retention: `PREVIEW_BACKUP_RETENTION_DAYS` in `.env` (default: 14 days)
 * Storage: the `kitsu_backups` Docker volume
+
+Each scheduled run creates a PostgreSQL dump and a preview-file archive. The `previews` volume is mounted read-only into the backup container.
 
 Trigger a manual backup:
 
@@ -159,6 +166,10 @@ docker compose --env-file .env --env-file versions.env exec db-backup ls -lh /ba
 ```
 
 See [`docs/backups.md`](docs/backups.md) for manual backup, listing, copy, restore, and Windows Git Bash notes.
+
+## Compose Overlays
+
+The default deployment still uses one `docker-compose.yml`. Before splitting the stack, follow the overlay plan in [`docs/compose-overlays.md`](docs/compose-overlays.md) so future Compose files preserve the simple default workflow and have explicit validation commands.
 
 ## Common Commands
 
@@ -196,6 +207,26 @@ docker compose --env-file .env.example --env-file versions.env config --quiet
 sh scripts/smoke-test.sh
 ```
 
+The smoke test validates Compose with `.env` and `.env.example`. By default it also expects the stack to already be running, waits for core service healthchecks, then checks the frontend route, `/api` through nginx, the Socket.IO event route, Meilisearch health from inside the Docker network, and preview/temp mounts on `zou-api` and `zou-jobs`.
+
+For config-only validation:
+
+```bash
+CONFIG_ONLY=1 sh scripts/smoke-test.sh
+```
+
+To include the optional database backup command:
+
+```bash
+RUN_BACKUP_SMOKE_TEST=1 sh scripts/smoke-test.sh
+```
+
+On Windows Git Bash, use this form if Docker rewrites container paths:
+
+```bash
+MSYS_NO_PATHCONV=1 sh scripts/smoke-test.sh
+```
+
 ## Architecture
 
 This project uses separate containers instead of the official all-in-one `cgwire/cgwire` image:
@@ -203,6 +234,7 @@ This project uses separate containers instead of the official all-in-one `cgwire
 * `kitsu-web` for the frontend
 * `zou-api` for the API
 * `zou-events` for Socket.IO events
+* `zou-jobs` for asynchronous background jobs queued by Zou
 * `db` for Postgres
 * `redis` for the key/value store
 * `meilisearch` for indexing
