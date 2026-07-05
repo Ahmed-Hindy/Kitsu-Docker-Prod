@@ -5,7 +5,7 @@ ARG SUPERCRONIC_VERSION=v0.2.46
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar; \
     rm -rf /var/lib/apt/lists/*; \
     case "${TARGETARCH:-amd64}" in \
       amd64) SUPERCRONIC=supercronic-linux-amd64; SUPERCRONIC_SHA1SUM=5bcefed628e32adc08e32634db2d10e9230dbca0 ;; \

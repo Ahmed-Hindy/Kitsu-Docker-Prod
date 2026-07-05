@@ -23,6 +23,7 @@ Included changes:
   - add `ZOU_API_INTERNAL_PORT`
   - add `ZOU_EVENTS_INTERNAL_PORT`
 - Keep explicit application and backup image tags in `versions.env`.
+- Keep Postgres and Meilisearch image tags in `versions.env` without upgrading them.
 - Keep Compose image references tied to those explicit tags instead of relying on implicit defaults.
 - Fix the Zou Dockerfile so `gunicorn.conf.py` is copied from inside the `./zou` build context.
 - Add a local smoke-test script.
@@ -81,7 +82,8 @@ Without `MSYS_NO_PATHCONV=1`, Git Bash may rewrite `/backup_once.sh` into a Wind
 - `.env` still contains local/demo credentials and should be changed before real deployment.
 - Restore documentation exists, but a full restore test was not performed in this PR.
 - Mailcatcher invite/email workflow was not fully tested.
-- Larger architecture work, such as Compose overlays, remains deferred.
+- Larger architecture work, such as implementing Compose overlays, remains deferred. The overlay strategy is documented in `docs/compose-overlays.md`.
+- Postgres and Meilisearch version changes are documented as separate upgrade work in `docs/upgrades.md`.
 
 ## Recommended next phase
 
