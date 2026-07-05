@@ -15,7 +15,38 @@ fail() {
 }
 
 compose() {
-  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --env-file "$VERSION_ENV_FILE" "$@"
+  # COMPOSE_FILE can be a single file, a whitespace-separated list of files,
+  # or the common "-f file -f override.yml" form used for local test overlays.
+  # shellcheck disable=SC2046
+  docker compose $(compose_file_flags) --env-file "$ENV_FILE" --env-file "$VERSION_ENV_FILE" "$@"
+}
+
+compose_file_flags() {
+  expect_file=0
+  for item in $COMPOSE_FILE; do
+    case "$item" in
+      -f|--file)
+        printf '%s\n' "$item"
+        expect_file=1
+        ;;
+      *)
+        if [ "$expect_file" -eq 1 ]; then
+          printf '%s\n' "$item"
+          expect_file=0
+        else
+          printf '%s\n%s\n' "-f" "$item"
+        fi
+        ;;
+    esac
+  done
+  [ "$expect_file" -eq 0 ] || fail "COMPOSE_FILE ends with -f/--file but no file path"
+}
+
+compose_with_env_file() {
+  env_file="$1"
+  shift
+  # shellcheck disable=SC2046
+  docker compose $(compose_file_flags) --env-file "$env_file" --env-file "$VERSION_ENV_FILE" "$@"
 }
 
 get_env_value() {
@@ -62,6 +93,16 @@ wait_for_healthy_service() {
   fail "service did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s: $service"
 }
 
+require_volume_mount() {
+  container_id="$1"
+  destination="$2"
+  service="$3"
+
+  docker inspect --format '{{range .Mounts}}{{println .Type .Destination}}{{end}}' "$container_id" \
+    | awk -v destination="$destination" '$1 == "volume" && $2 == destination { found = 1 } END { exit found ? 0 : 1 }' \
+    || fail "$service is missing a Docker volume mount at $destination"
+}
+
 if [ ! -f "$ENV_FILE" ]; then
   fail "missing env file: $ENV_FILE"
 fi
@@ -78,7 +119,7 @@ compose config --quiet
 
 if [ -f ".env.example" ]; then
   echo "[smoke-test] Validating Compose file with .env.example..."
-  docker compose -f "$COMPOSE_FILE" --env-file .env.example --env-file "$VERSION_ENV_FILE" config --quiet
+  compose_with_env_file .env.example config --quiet
 fi
 
 echo "[smoke-test] Checking expected services in rendered Compose config..."
@@ -118,15 +159,11 @@ preview_folder="${preview_folder:-/opt/zou/previews}"
 tmp_dir="$(get_env_value TMP_DIR "$ENV_FILE" || true)"
 tmp_dir="${tmp_dir:-/tmp/zou}"
 zou_api_container="$(compose ps -q zou-api)"
-docker inspect --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}' "$zou_api_container" | grep -F "kitsu_previews $preview_folder" >/dev/null \
-  || fail "zou-api is missing the kitsu_previews mount at $preview_folder"
-docker inspect --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}' "$zou_api_container" | grep -F "kitsu_zou_tmp $tmp_dir" >/dev/null \
-  || fail "zou-api is missing the kitsu_zou_tmp mount at $tmp_dir"
+require_volume_mount "$zou_api_container" "$preview_folder" "zou-api"
+require_volume_mount "$zou_api_container" "$tmp_dir" "zou-api"
 zou_jobs_container="$(compose ps -q zou-jobs)"
-docker inspect --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}' "$zou_jobs_container" | grep -F "kitsu_previews $preview_folder" >/dev/null \
-  || fail "zou-jobs is missing the kitsu_previews mount at $preview_folder"
-docker inspect --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}' "$zou_jobs_container" | grep -F "kitsu_zou_tmp $tmp_dir" >/dev/null \
-  || fail "zou-jobs is missing the kitsu_zou_tmp mount at $tmp_dir"
+require_volume_mount "$zou_jobs_container" "$preview_folder" "zou-jobs"
+require_volume_mount "$zou_jobs_container" "$tmp_dir" "zou-jobs"
 
 echo "[smoke-test] Checking Kitsu web at ${BASE_URL}/..."
 curl -fsS --max-time 10 "${BASE_URL}/" >/dev/null

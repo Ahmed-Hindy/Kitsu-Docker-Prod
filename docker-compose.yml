@@ -53,10 +53,10 @@ x-zou-runtime-depends: &zou-runtime-depends
 
 networks:
   web:
-    name: kitsu_web
+    name: ${KITSU_WEB_NETWORK_NAME:-kitsu_web}
     external: false
   internal:
-    name: kitsu_internal
+    name: ${KITSU_INTERNAL_NETWORK_NAME:-kitsu_internal}
     external: false
 
 volumes:
@@ -159,7 +159,7 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=kitsu_web"
+      - "traefik.docker.network=${KITSU_WEB_NETWORK_NAME:-kitsu_web}"
       - "traefik.http.services.kitsu.loadbalancer.server.port=80"
       - "traefik.http.routers.kitsu-http.rule=Host(`${KITSU_DOMAIN:-localhost}`)"
       - "traefik.http.routers.kitsu-http.entrypoints=web"
