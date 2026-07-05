@@ -108,6 +108,8 @@ echo "[smoke-test] Checking zou-jobs service..."
 require_running_service zou-jobs
 
 echo "[smoke-test] Checking Meilisearch health from inside the container..."
+# MEILI_PORT must expand inside the container, not in this host-side script.
+# shellcheck disable=SC2016
 compose exec -T meilisearch sh -c 'wget -qO- "http://127.0.0.1:${MEILI_PORT:-7700}/health" | grep -q available'
 
 echo "[smoke-test] Checking preview and temp volume mounts..."

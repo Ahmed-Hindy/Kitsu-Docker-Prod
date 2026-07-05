@@ -11,6 +11,7 @@ venv/
 # Local tooling / temporary files
 qc
 query
+.temp/
 
 # Traefik runtime state
 traefik/acme.json
