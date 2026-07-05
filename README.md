@@ -58,11 +58,12 @@ docker compose version
 
 3. Keep `versions.env` with the deployment.
 
-   Docker Compose uses this file to pull explicit Kitsu/Zou image tags:
+   Docker Compose uses this file to pull explicit Kitsu, Zou, and backup image tags:
 
    ```env
    ZOU_VERSION=v1.0.52
    KITSU_VERSION=v1.0.48
+   BACKUP_IMAGE_TAG=main
    ```
 
 4. Pull and start the stack:
@@ -120,7 +121,7 @@ Zou API:     http://localhost:5001/
 
 Images are built and pushed to GHCR by GitHub Actions.
 
-The Kitsu and Zou versions are pinned in `versions.env`. Deployment commands must load both `.env` and `versions.env` so Compose pulls the explicit application-version tags instead of `latest`.
+The Kitsu, Zou, and backup image tags are declared in `versions.env`. Deployment commands must load both `.env` and `versions.env` so Compose pulls explicit image tags instead of relying on `latest`.
 
 To update Kitsu or Zou:
 

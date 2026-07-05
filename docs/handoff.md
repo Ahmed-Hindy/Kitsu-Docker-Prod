@@ -22,8 +22,8 @@ Included changes:
   - `ZOU_API_PORT` -> `ZOU_API_HOST_PORT`
   - add `ZOU_API_INTERNAL_PORT`
   - add `ZOU_EVENTS_INTERNAL_PORT`
-- Keep explicit application versions in `versions.env`.
-- Keep version-pinned GHCR image references in Compose.
+- Keep explicit application and backup image tags in `versions.env`.
+- Keep Compose image references tied to those explicit tags instead of relying on implicit defaults.
 - Fix the Zou Dockerfile so `gunicorn.conf.py` is copied from inside the `./zou` build context.
 - Add a local smoke-test script.
 - Add a non-publishing CI workflow that validates Compose config and builds the Zou, Kitsu web, and db-backup images.
@@ -38,7 +38,7 @@ During conflict resolution, `db-backup` briefly regressed to plain `postgres:15`
 ```yaml
 build:
   context: ./backups
-image: ghcr.io/ahmed-hindy/kitsu-db-backup:latest
+image: ghcr.io/ahmed-hindy/kitsu-db-backup:${BACKUP_IMAGE_TAG:?Set BACKUP_IMAGE_TAG in versions.env}
 ```
 
 The validation workflow now also builds `backups/Dockerfile` so this regression is caught in CI.
