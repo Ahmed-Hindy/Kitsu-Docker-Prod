@@ -70,6 +70,7 @@ services:
     restart: unless-stopped
     environment:
       MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
       - meili:/meili_data
     networks:
@@ -124,6 +125,7 @@ services:
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
       INDEXER_PORT: ${MEILI_PORT}
+      INDEXER_KEY: ${MEILI_MASTER_KEY}
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
@@ -138,9 +140,12 @@ services:
       CORS_ALLOWED_ORIGINS: ${KITSU_WEB_URL:-http://localhost:8080}
 
     depends_on:
-      - db
-      - redis
-      - meilisearch
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
     networks:
       - internal
     restart: unless-stopped
@@ -164,6 +169,7 @@ services:
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
       INDEXER_PORT: ${MEILI_PORT}
+      INDEXER_KEY: ${MEILI_MASTER_KEY}
 
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
@@ -185,8 +191,12 @@ services:
     #   - "5002:${ZOU_API_PORT}"
 
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
     networks:
       - internal
     restart: unless-stopped
@@ -213,15 +223,20 @@ services:
       INDEXER_TYPE: meilisearch
       INDEXER_HOST: meilisearch
       INDEXER_PORT: ${MEILI_PORT}
+      INDEXER_KEY: ${MEILI_MASTER_KEY}
 
       # ---- Security / app settings ----
       SECRET_KEY: ${ZOU_SECRET_KEY}
       LOG_LEVEL: ${ZOU_LOG_LEVEL}
     depends_on:
-      - db
-      - redis
-      - meilisearch
-      - zou-api
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+      zou-api:
+        condition: service_started
     networks:
       - internal
     entrypoint: [ "sh", "-c" ]
@@ -257,6 +272,9 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
     volumes:
       - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - internal
     restart: unless-stopped
