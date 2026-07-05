@@ -32,11 +32,32 @@ jobs:
       - name: Validate Compose config with example env
         run: docker compose --env-file .env.example --env-file versions.env config --quiet
 
+  shellcheck:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: shellcheck scripts/smoke-test.sh zou/init-db.sh backups/backup.sh
+
   docker-builds:
     name: Docker builds
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: compose-config
+    needs:
+      - compose-config
+      - shellcheck
 
     steps:
       - name: Checkout repository

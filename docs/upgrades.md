@@ -25,6 +25,8 @@ Do not bump `POSTGRES_VERSION` as part of an unrelated change. A Postgres major-
 - confirmation that Zou supports the target Postgres version;
 - validation against a copy of the real data volume or a representative test dataset.
 
+Use [`docs/postgres-upgrade-runbook.md`](postgres-upgrade-runbook.md) before planning a major-version upgrade.
+
 ## Meilisearch
 
 `MEILI_VERSION=v1.11` currently renders the same `getmeili/meilisearch:v1.11` image that the stack used before this refactor.
@@ -35,6 +37,8 @@ Do not bump `MEILI_VERSION` as part of an unrelated change. A Meilisearch upgrad
 - review of Meilisearch release notes for breaking index or dump-format changes;
 - confirmation that Zou supports the target Meilisearch version;
 - validation that indexing and search still work after the change.
+
+Use [`docs/meilisearch-upgrade-runbook.md`](meilisearch-upgrade-runbook.md) before planning an indexer upgrade.
 
 ## Validation
 

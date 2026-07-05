@@ -1,3 +1,56 @@
+x-zou-env: &zou-env
+  # ---- DB config (for Zou) ----
+  DB_TYPE: postgres
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_USERNAME: ${POSTGRES_USER}
+  DB_PASSWORD: ${POSTGRES_PASSWORD}
+  DB_DATABASE: ${POSTGRES_DB}
+  # ---- Redis / KV store ----
+  KV_TYPE: redis
+  KV_HOST: redis
+  KV_PORT: ${REDIS_PORT}
+  # ---- Meilisearch indexer ----
+  INDEXER_TYPE: meilisearch
+  INDEXER_HOST: meilisearch
+  INDEXER_PORT: ${MEILI_PORT}
+  INDEXER_KEY: ${MEILI_MASTER_KEY}
+  # ---- Security / app settings ----
+  SECRET_KEY: ${ZOU_SECRET_KEY}
+  LOG_LEVEL: ${ZOU_LOG_LEVEL}
+  ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
+  JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
+
+x-zou-mail-env: &zou-mail-env
+  MAIL_SERVER: mailcatcher
+  MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
+  MAIL_DEFAULT_SENDER: "kitsu@example.com"
+  MAIL_USE_TLS: false
+  MAIL_USE_SSL: false
+  DOMAIN_PROTOCOL: ${DOMAIN_PROTOCOL}
+  DOMAIN_NAME: ${DOCKER_HOST_IP:-localhost}:${KITSU_WEB_HOST_PORT:-8080}
+
+x-zou-backend-env: &zou-backend-env
+  PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
+  TMP_DIR: ${TMP_DIR:-/tmp/zou}
+
+x-zou-backend-volumes: &zou-backend-volumes
+  - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
+  - zou_tmp:${TMP_DIR:-/tmp/zou}
+
+x-zou-base-depends: &zou-base-depends
+  db:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  meilisearch:
+    condition: service_healthy
+
+x-zou-runtime-depends: &zou-runtime-depends
+  <<: *zou-base-depends
+  zou-init-db:
+    condition: service_completed_successfully
+
 networks:
   web:
     name: kitsu_web
@@ -130,51 +183,10 @@ services:
     ports:
       - "${ZOU_API_HOST_PORT:-5001}:${ZOU_API_INTERNAL_PORT:-8000}"
     environment:
-      # ---- DB config (for Zou) ----
-      DB_TYPE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_DATABASE: ${POSTGRES_DB}
-      # ---- Redis / KV store ----
-      KV_TYPE: redis
-      KV_HOST: redis
-      KV_PORT: ${REDIS_PORT}
-      # ---- Meilisearch indexer ----
-      INDEXER_TYPE: meilisearch
-      INDEXER_HOST: meilisearch
-      INDEXER_PORT: ${MEILI_PORT}
-      INDEXER_KEY: ${MEILI_MASTER_KEY}
-      # ---- Security / app settings ----
-      SECRET_KEY: ${ZOU_SECRET_KEY}
-      LOG_LEVEL: ${ZOU_LOG_LEVEL}
-      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
-      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
-
-      MAIL_SERVER: mailcatcher
-      MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
-      MAIL_DEFAULT_SENDER: "kitsu@example.com"
-      MAIL_USE_TLS: false
-      MAIL_USE_SSL: false
-      DOMAIN_PROTOCOL: ${DOMAIN_PROTOCOL}
-      DOMAIN_NAME: ${DOCKER_HOST_IP:-localhost}:${KITSU_WEB_HOST_PORT:-8080}
+      <<: [*zou-env, *zou-mail-env, *zou-backend-env]
       CORS_ALLOWED_ORIGINS: ${KITSU_WEB_URL:-http://localhost:8080}
-      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
-      TMP_DIR: ${TMP_DIR:-/tmp/zou}
-    volumes:
-      - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
-      - zou_tmp:${TMP_DIR:-/tmp/zou}
-
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_healthy
-      zou-init-db:
-        condition: service_completed_successfully
+    volumes: *zou-backend-volumes
+    depends_on: *zou-runtime-depends
     healthcheck:
       test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, urllib.request; port = os.environ.get(\"ZOU_API_INTERNAL_PORT\", \"8000\"); response = urllib.request.urlopen(\"http://127.0.0.1:%s/\" % port, timeout=5); raise SystemExit(0 if response.status < 500 else 1)'" ]
       interval: 10s
@@ -190,34 +202,7 @@ services:
     env_file:
       - .env
     environment:
-      DB_TYPE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_DATABASE: ${POSTGRES_DB}
-
-      KV_TYPE: redis
-      KV_HOST: redis
-      KV_PORT: ${REDIS_PORT}
-
-      INDEXER_TYPE: meilisearch
-      INDEXER_HOST: meilisearch
-      INDEXER_PORT: ${MEILI_PORT}
-      INDEXER_KEY: ${MEILI_MASTER_KEY}
-
-      SECRET_KEY: ${ZOU_SECRET_KEY}
-      LOG_LEVEL: ${ZOU_LOG_LEVEL}
-      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
-      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
-
-      MAIL_SERVER: mailcatcher
-      MAIL_PORT: ${MAILCATCHER_SMTP_PORT}
-      MAIL_DEFAULT_SENDER: "kitsu@example.com"
-      MAIL_USE_TLS: false
-      MAIL_USE_SSL: false
-      DOMAIN_PROTOCOL: ${DOMAIN_PROTOCOL}
-      DOMAIN_NAME: ${DOCKER_HOST_IP:-localhost}:${KITSU_WEB_HOST_PORT:-8080}
+      <<: [*zou-env, *zou-mail-env]
 
     # run ONLY the events server here
     command: >
@@ -227,15 +212,7 @@ services:
     # ports:
     #   - "5002:${ZOU_API_PORT}"
 
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_healthy
-      zou-init-db:
-        condition: service_completed_successfully
+    depends_on: *zou-runtime-depends
     healthcheck:
       test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, socket; port = int(os.environ.get(\"ZOU_EVENTS_INTERNAL_PORT\", \"5001\")); socket.create_connection((\"127.0.0.1\", port), timeout=5).close()'" ]
       interval: 10s
@@ -251,41 +228,10 @@ services:
     env_file:
       - .env
     environment:
-      DB_TYPE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_DATABASE: ${POSTGRES_DB}
-
-      KV_TYPE: redis
-      KV_HOST: redis
-      KV_PORT: ${REDIS_PORT}
-
-      INDEXER_TYPE: meilisearch
-      INDEXER_HOST: meilisearch
-      INDEXER_PORT: ${MEILI_PORT}
-      INDEXER_KEY: ${MEILI_MASTER_KEY}
-
-      SECRET_KEY: ${ZOU_SECRET_KEY}
-      LOG_LEVEL: ${ZOU_LOG_LEVEL}
-      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
-      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
-      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
-      TMP_DIR: ${TMP_DIR:-/tmp/zou}
+      <<: [*zou-env, *zou-backend-env]
     command: [ "/opt/venv/bin/rq", "worker", "-c", "zou.job_settings" ]
-    volumes:
-      - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
-      - zou_tmp:${TMP_DIR:-/tmp/zou}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_healthy
-      zou-init-db:
-        condition: service_completed_successfully
+    volumes: *zou-backend-volumes
+    depends_on: *zou-runtime-depends
     healthcheck:
       test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os; from redis import Redis; Redis(host=os.environ.get(\"KV_HOST\", \"redis\"), port=int(os.environ.get(\"KV_PORT\", \"6379\")), socket_connect_timeout=5).ping()'" ]
       interval: 10s
@@ -301,39 +247,8 @@ services:
     env_file:
       - .env
     environment:
-      # ---- DB config (for Zou) ----
-      DB_TYPE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_DATABASE: ${POSTGRES_DB}
-
-      # ---- Redis / KV store ----
-      KV_TYPE: redis
-      KV_HOST: redis
-      KV_PORT: ${REDIS_PORT}
-
-      # ---- Meilisearch indexer ----
-      INDEXER_TYPE: meilisearch
-      INDEXER_HOST: meilisearch
-      INDEXER_PORT: ${MEILI_PORT}
-      INDEXER_KEY: ${MEILI_MASTER_KEY}
-
-      # ---- Security / app settings ----
-      SECRET_KEY: ${ZOU_SECRET_KEY}
-      LOG_LEVEL: ${ZOU_LOG_LEVEL}
-      ENABLE_JOB_QUEUE: ${ENABLE_JOB_QUEUE:-True}
-      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-3600}
-      PREVIEW_FOLDER: ${PREVIEW_FOLDER:-/opt/zou/previews}
-      TMP_DIR: ${TMP_DIR:-/tmp/zou}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_healthy
+      <<: [*zou-env, *zou-backend-env]
+    depends_on: *zou-base-depends
     volumes:
       - previews:${PREVIEW_FOLDER:-/opt/zou/previews}
       - zou_tmp:${TMP_DIR:-/tmp/zou}
