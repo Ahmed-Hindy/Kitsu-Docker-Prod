@@ -107,7 +107,7 @@ Restoring into an existing database can overwrite or conflict with current data.
 Stop application services first so they do not write while the restore is running:
 
 ```bash
-docker compose --env-file .env --env-file versions.env stop zou-api zou-events zou-init-db kitsu-web nginx
+docker compose --env-file .env --env-file versions.env stop zou-api zou-events zou-jobs zou-init-db kitsu-web nginx db-backup
 ```
 
 Restore a compressed SQL dump:

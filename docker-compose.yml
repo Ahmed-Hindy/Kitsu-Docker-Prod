@@ -173,6 +173,8 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      zou-init-db:
+        condition: service_completed_successfully
     healthcheck:
       test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, urllib.request; port = os.environ.get(\"ZOU_API_INTERNAL_PORT\", \"8000\"); response = urllib.request.urlopen(\"http://127.0.0.1:%s/\" % port, timeout=5); raise SystemExit(0 if response.status < 500 else 1)'" ]
       interval: 10s
@@ -232,6 +234,8 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      zou-init-db:
+        condition: service_completed_successfully
     healthcheck:
       test: [ "CMD-SHELL", "/opt/venv/bin/python -c 'import os, socket; port = int(os.environ.get(\"ZOU_EVENTS_INTERNAL_PORT\", \"5001\")); socket.create_connection((\"127.0.0.1\", port), timeout=5).close()'" ]
       interval: 10s
