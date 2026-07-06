@@ -19,7 +19,7 @@ RUN set -eux; \
     chmod +x /usr/local/bin/supercronic; \
     supercronic -version
 
-COPY backup.sh /backup.sh
-RUN chmod +x /backup.sh
+COPY backup.sh backup_db_once.sh backup_previews_once.sh backup_once.sh /
+RUN chmod +x /backup.sh /backup_db_once.sh /backup_previews_once.sh /backup_once.sh
 
 ENTRYPOINT ["/bin/bash", "/backup.sh"]

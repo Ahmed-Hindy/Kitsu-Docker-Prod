@@ -49,7 +49,14 @@ jobs:
           sudo apt-get install -y shellcheck
 
       - name: Run ShellCheck
-        run: shellcheck scripts/smoke-test.sh zou/init-db.sh backups/backup.sh
+        run: |
+          shellcheck \
+            scripts/smoke-test.sh \
+            zou/init-db.sh \
+            backups/backup.sh \
+            backups/backup_db_once.sh \
+            backups/backup_previews_once.sh \
+            backups/backup_once.sh
 
   docker-builds:
     name: Docker builds
