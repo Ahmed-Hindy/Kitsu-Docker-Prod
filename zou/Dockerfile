@@ -1,6 +1,10 @@
 # ---------- Builder stage ----------
 FROM python:3.11-slim AS builder
 
+ARG ZOU_VERSION
+RUN test -n "$ZOU_VERSION" || (echo "ZOU_VERSION build arg is required" >&2; exit 1)
+ENV ZOU_VERSION=${ZOU_VERSION}
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     build-essential \
@@ -16,9 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-ARG ZOU_VERSION=v1.0.52
-ENV ZOU_VERSION=${ZOU_VERSION}
-RUN git clone --depth=1 --branch ${ZOU_VERSION} https://github.com/cgwire/zou.git .
+RUN git clone --depth=1 --branch "${ZOU_VERSION}" https://github.com/cgwire/zou.git .
 
 # Create a virtualenv for Zou + dependencies.
 RUN python -m venv /opt/venv \

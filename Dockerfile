@@ -3,12 +3,13 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
+# KITSU_VERSION must be passed from versions.env by Compose or CI.
+ARG KITSU_VERSION
+RUN test -n "$KITSU_VERSION" || (echo "KITSU_VERSION build arg is required" >&2; exit 1)
+ENV KITSU_VERSION=${KITSU_VERSION}
+
 # git is needed only to clone the repo
 RUN apk add --no-cache git
-
-# KITSU_VERSION comes from build args
-ARG KITSU_VERSION=v1.0.48
-ENV KITSU_VERSION=${KITSU_VERSION}
 RUN git clone --depth=1 --branch "${KITSU_VERSION}" https://github.com/cgwire/kitsu.git .
 
 # Vite reads VITE_* variables at build time
