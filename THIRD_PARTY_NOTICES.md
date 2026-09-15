@@ -1,25 +1,14 @@
 # Third-Party Notices
 
-## Kitsu
+The Apache-2.0 license in this repository applies only to its deployment configuration.
 
-This stack builds and deploys Kitsu `v1.0.48` from
-[`cgwire/kitsu`](https://github.com/cgwire/kitsu/tree/v1.0.48).
+- [Kitsu](https://github.com/cgwire/kitsu) — AGPL-3.0
+- [Zou](https://github.com/cgwire/zou) — AGPL-3.0
 
-Kitsu is licensed under GNU Affero General Public License version 3.0 (AGPL-3.0).
-The Apache-2.0 license in this repository applies only to this repository's original
-deployment configuration and does not relicense Kitsu.
-
-## Zou
-
-This stack builds and deploys Zou `v1.0.52` from
-[`cgwire/zou`](https://github.com/cgwire/zou/tree/v1.0.52).
-
-Zou is licensed under GNU Affero General Public License version 3.0 (AGPL-3.0).
-The Apache-2.0 license in this repository applies only to this repository's original
-deployment configuration and does not relicense Zou.
+Their image versions are declared in [versions.env](versions.env). This repository does
+not relicense either project.
 
 ## Redistributing images or modifications
 
-When distributing images that contain Kitsu or Zou, preserve their license and copyright
-notices. If you modify either project, make the corresponding source for that modified
-version available under the AGPL-3.0 as required by that license.
+When distributing images that contain Kitsu or Zou, preserve their notices. If you modify
+either project, make the corresponding source available under AGPL-3.0.
