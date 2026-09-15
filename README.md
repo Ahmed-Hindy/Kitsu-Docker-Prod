@@ -244,3 +244,12 @@ This project uses separate containers instead of the official all-in-one `cgwire
 * `mailcatcher` for local development mail
 
 The official `cgwire/cgwire` image is useful for trying Kitsu quickly on one machine. This stack is intended to be closer to a production-style deployment with separate services, reverse proxying, and backups.
+
+## License and third-party software
+
+The deployment configuration in this repository is licensed under [Apache-2.0](LICENSE).
+
+Kitsu and Zou remain separately licensed under AGPL-3.0. The project builds and deploys
+their tagged upstream releases; it does not relicense them. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the exact versions, source locations,
+and redistribution obligations.
